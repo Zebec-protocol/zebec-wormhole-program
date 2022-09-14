@@ -1,0 +1,91 @@
+use anchor_lang::prelude::*;
+use anchor_lang::solana_program::instruction::Instruction;
+
+#[account]
+#[derive(Default)]
+pub struct Config{
+    pub owner: Pubkey,
+    pub nonce: u32,
+    pub current_msg: Vec<u8>
+}
+
+#[account]
+#[derive(Default)]
+pub struct EmitterAddrAccount{
+    pub chain_id: u16,
+    pub emitter_addr: String
+}
+
+//Empty account, we just need to check that it *exists*
+#[account]
+pub struct ProcessedVAA {}
+
+#[account]
+pub struct Multisig {
+    pub owners: Vec<Pubkey>,
+    pub threshold: u64,
+    pub nonce: u8,
+    pub owner_set_seqno: u32,
+}
+
+#[account]
+pub struct Transaction {
+    //450
+    // Target program to execute against.32
+    pub program_id: Pubkey,
+    // Accounts requried for the transaction.8+9*34
+    pub accounts: Vec<TransactionAccount>,
+    // Instruction data for the transaction.8+8
+    pub data: Vec<u8>,
+    // Boolean ensuring one time execution.1+8
+    pub did_execute: bool,
+}
+
+#[account]
+// TODO: can_update and cancel are bools
+pub struct TransactionData {
+    pub transaction_hash: [u8; 32],
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone)]
+pub struct TransactionAccount {
+    pub pubkey: Pubkey,
+    pub is_signer: bool,
+    pub is_writable: bool,
+}
+
+#[account]
+#[derive(Default)]
+pub struct Count{
+    pub count: u8,
+}
+
+impl From<&Transaction> for Instruction {
+    fn from(tx: &Transaction) -> Instruction {
+        Instruction {
+            program_id: tx.program_id,
+            accounts: tx.accounts.iter().map(Into::into).collect(),
+            data: tx.data.clone(),
+        }
+    }
+}
+
+impl From<&TransactionAccount> for AccountMeta {
+    fn from(account: &TransactionAccount) -> AccountMeta {
+        match account.is_writable {
+            false => AccountMeta::new_readonly(account.pubkey, account.is_signer),
+            true => AccountMeta::new(account.pubkey, account.is_signer),
+        }
+    }
+}
+
+impl From<&AccountMeta> for TransactionAccount {
+    fn from(account_meta: &AccountMeta) -> TransactionAccount {
+        TransactionAccount {
+            pubkey: account_meta.pubkey,
+            is_signer: account_meta.is_signer,
+            is_writable: account_meta.is_writable,
+        }
+    }
+}
+
