@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
+// use anchor_lang::solana_program::keccak::Hash;
+use borsh::{BorshDeserialize, BorshSerialize};
 
 #[account]
 #[derive(Default)]
@@ -21,14 +23,6 @@ pub struct EmitterAddrAccount{
 pub struct ProcessedVAA {}
 
 #[account]
-pub struct Multisig {
-    pub owners: Vec<Pubkey>,
-    pub threshold: u64,
-    pub nonce: u8,
-    pub owner_set_seqno: u32,
-}
-
-#[account]
 pub struct Transaction {
     //450
     // Target program to execute against.32
@@ -44,7 +38,18 @@ pub struct Transaction {
 #[account]
 // TODO: can_update and cancel are bools
 pub struct TransactionData {
-    pub transaction_hash: [u8; 32],
+    // pub transaction_hash: [u8; 32],
+    // (4+32*1) * 3 + 8 + 32 + 8 + 8 + 8 + 1 + 1= 8 + 174
+    pub sender: Vec<u8>,
+    pub receiver: Vec<u8>,
+    pub data_account: Pubkey,
+    pub from_chain_id: u64,
+    pub token_mint: Pubkey,
+    pub amount: u64,
+    pub start_time: u64,
+    pub end_time: u64,
+    pub can_update: bool,
+    pub can_cancel: bool
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -60,6 +65,26 @@ pub struct Count{
     pub count: u8,
 }
 
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct TokenAmount {
+    pub amount: u64
+}
+
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct Stream {
+    pub start_time: u64,
+    pub end_time: u64,
+    pub amount: u64,
+    pub can_cancel: bool,
+    pub can_update: bool
+}
+
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct StreamUpdate {
+    pub start_time: u64,
+    pub end_time: u64,
+    pub amount: u64
+}
 impl From<&Transaction> for Instruction {
     fn from(tx: &Transaction) -> Instruction {
         Instruction {

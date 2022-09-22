@@ -8,6 +8,11 @@ import { derivePath } from 'ed25519-hd-key';
 import { keccak_256 } from 'js-sha3';
 import { SolanaProject as Messenger } from '../target/types/solana_project';
 import { Zebec } from '../target/types/zebec';
+import {
+  CHAIN_ID_ETH,
+  CHAIN_ID_SOLANA,
+  tryNativeToUint8Array,
+} from "@certusone/wormhole-sdk";
 
 const OPERATE = 'NewVaultOption';
 const OPERATEDATA = 'NewVaultOptionData';
@@ -207,21 +212,16 @@ const withdrawData = async (
 
 const init_pda_ata = async () => {
   let chain_id_string = '4';
-  depositorHash = Buffer.from(
-    keccak_256('0xB0e53390e4697e65d6c2ed5213e49b8390da9853'),
-    'hex'
-  );
-  chainIdHash = Buffer.from(keccak_256(chain_id_string), 'hex');
+  chainIdHash = Buffer.from((chain_id_string));
+
+  depositorHash = tryNativeToUint8Array('0x30Fbf353f4f7C37952e22a9709e04b7541D5A77F', CHAIN_ID_ETH);
+  receiverHash = tryNativeToUint8Array('0x30ca5c53ff960f16180aada7c38ab2572a597676', CHAIN_ID_ETH);
   const [pdaSignerTemp, nonce] = await anchor.web3.PublicKey.findProgramAddress(
     [depositorHash, chainIdHash],
     program.programId
   );
   let pdaSigner = pdaSignerTemp;
 
-  receiverHash = Buffer.from(
-    keccak_256('0x30ca5c53ff960f16180aada7c38ab2572a597676'),
-    'hex'
-  );
   const [pdaReciverTemp] = await anchor.web3.PublicKey.findProgramAddress(
     [receiverHash, chainIdHash],
     program.programId
@@ -344,7 +344,7 @@ const initZEBECFeeVault = async () => {
 const doTheThing = async () => {
   await init_mint();
   await init_pda_ata();
-  await readInfo();
+  // await readInfo();
   await init_fee_account_zebec();
   await initZEBECFeeVault();
   await init_fee_vault_ata();

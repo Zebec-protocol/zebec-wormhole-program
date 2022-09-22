@@ -1,20 +1,20 @@
 use anchor_lang::prelude::*;
+// use anchor_lang::solana_program::keccak::Hash;
 
 use crate::constants::*;
-use crate::instruction;
+// use crate::instruction;
 use crate::state::*;
 use std::str::FromStr;
 use anchor_lang::solana_program::sysvar::{rent, clock};
 use crate::wormhole::*;
 use hex::decode;
-use anchor_spl::{
-    token::{
-        Mint
-    }
-};
+// use anchor_spl::{
+//     token::{
+//         Mint
+//     }
+// };
 
-pub const PREFIX_TOKEN: &str = "withdraw_token";
-
+// pub const PREFIX_TOKEN: &str = "withdraw_token";
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -118,41 +118,43 @@ pub struct SendMsg<'info>{
 }
 
 #[derive(Accounts)]
-#[instruction(  
+#[instruction( 
     pid: Pubkey,
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
-    from_chain_id: Vec<u8>,
-    eth_add_hash: Vec<u8>
+    current_count: u8,
+    sender: Vec<u8>,
 )]
-pub struct ConfirmMsg<'info>{
-
-    // ZEBEC's EOA.
-    #[account(mut)]
-    pub payer: Signer<'info>,
-
+pub struct CreateTransaction<'info> {
     #[account(zero, signer)]
     pub transaction: Box<Account<'info, Transaction>>,
+    // One of the owners. Checked in the handler.
+    #[account(mut)]
+    pub zebec_eoa: Signer<'info>,
+    pub system_program: Program<'info, System>,
 
-    #[account(
+   #[account(
+        mut,
         seeds = [
-            &eth_add_hash,
-            &from_chain_id
+            b"data_store".as_ref(),
+            &sender, 
+            current_count.to_string().as_bytes()
         ],
-        bump,
+        bump
     )]
     /// CHECK: pda_signer is a PDA program signer. Data is never read or written to
-    pub pda_signer: AccountInfo<'info>,
-}
+    pub data_storage: Account<'info, TransactionData>,
 
-
-#[derive(Accounts)]
-pub struct Debug<'info>{
     #[account(
-        constraint = core_bridge_vaa.to_account_info().owner == &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
+        mut,
+        constraint = data_storage.sender == sender,
+        seeds = [
+            b"txn_count".as_ref(),
+            &sender,
+        ],
+        bump
     )]
-    /// CHECK: This account is owned by Core Bridge so we trust it
-    pub core_bridge_vaa: AccountInfo<'info>,
+    pub txn_count: Account<'info, Count>,
 }
 
 #[derive(Accounts)]
@@ -161,13 +163,10 @@ pub struct Debug<'info>{
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     current_count: u8,
-
-    //Detail Data
+    chain_id: Vec<u8>,
     sender: Vec<u8>,
-    transaction_hash: Vec<u8>
 )]
-pub struct CreateTransaction<'info> {
-    // multisig: Box<Account<'info, Multisig>>,
+pub struct CETransaction<'info> {
     #[account(zero, signer)]
     pub transaction: Box<Account<'info, Transaction>>,
     // One of the owners. Checked in the handler.
@@ -175,22 +174,77 @@ pub struct CreateTransaction<'info> {
     pub zebec_eoa: Signer<'info>,
     pub system_program: Program<'info, System>,
 
-    // TODO: 
-    #[account(
-        init_if_needed,
-        space = 8 + 32,
-        payer = zebec_eoa,
+   #[account(
+        mut,
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[current_count]
+            current_count.to_string().as_bytes()
         ],
-        bump,
-        
+        bump
     )]
     /// CHECK: pda_signer is a PDA program signer. Data is never read or written to
     pub data_storage: Account<'info, TransactionData>,
 
+    #[account(
+        mut,
+        constraint = data_storage.sender == sender,
+        seeds = [
+            b"txn_count".as_ref(),
+            &sender,
+        ],
+        bump
+    )]
+    pub txn_count: Account<'info, Count>,
+    ///CHECK: pda seeds checked
+    #[account(
+        mut,
+        seeds = [
+            &sender,
+            &chain_id
+        ],
+        bump
+    )]
+    pub pda_signer: UncheckedAccount<'info>,
+}
+#[derive(Accounts)]
+#[instruction( 
+    pid: Pubkey,
+    accs: Vec<TransactionAccount>,
+    data: Vec<u8>,
+    current_count: u8,
+    sender: Vec<u8>,
+)]
+pub struct CreateTransactionReceiver<'info> {
+    #[account(zero, signer)]
+    pub transaction: Box<Account<'info, Transaction>>,
+    // One of the owners. Checked in the handler.
+    #[account(mut)]
+    pub zebec_eoa: Signer<'info>,
+    pub system_program: Program<'info, System>,
+
+   #[account(
+        mut,
+        seeds = [
+            b"data_store".as_ref(),
+            &sender, 
+            current_count.to_string().as_bytes()
+        ],
+        bump
+    )]
+    /// CHECK: pda_signer is a PDA program signer. Data is never read or written to
+    pub data_storage: Account<'info, TransactionData>,
+
+    #[account(
+        mut,
+        constraint = data_storage.receiver == sender,
+        seeds = [
+            b"txn_count".as_ref(),
+            &sender,
+        ],
+        bump
+    )]
+    pub txn_count: Account<'info, Count>,
 }
 
 #[derive(Accounts)]
@@ -206,7 +260,6 @@ pub struct StoreMsg<'info>{
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
-    // pub token_mint: Account<'info, Mint>,
 
     #[account(
         init,
@@ -228,15 +281,14 @@ pub struct StoreMsg<'info>{
     /// CHECK: This account is owned by Core Bridge so we trust it
     pub core_bridge_vaa: AccountInfo<'info>,
 
-    // TODO: 
     #[account(
         init_if_needed,
-        space = 8 + 32,
+        space = 8 + 174,
         payer = payer,
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[current_count]
+            current_count.to_string().as_bytes()
         ],
         bump,
     )]
@@ -259,16 +311,15 @@ pub struct StoreMsg<'info>{
 #[derive(Accounts)]
 #[instruction(  
     from_chain_id: Vec<u8>,
-    eth_add_hash: Vec<u8>
+    eth_add: Vec<u8>
 )]
 pub struct ExecuteTransaction<'info> {
-    // #[account(constraint = multisig.owner_set_seqno == transaction.owner_set_seqno)]
-    // multisig: Box<Account<'info, Multisig>>,
-    /// CHECK: multisig_signer is a PDA program signer. Data is never read or written to
+    ///CHECK: seeds are checked while creating transaction,
+    /// if different seeds passed the signature will not match
     #[account(
         mut,
         seeds = [
-            &eth_add_hash,
+            &eth_add,
             &from_chain_id
         ],
         bump

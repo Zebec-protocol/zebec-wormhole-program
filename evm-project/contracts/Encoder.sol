@@ -20,6 +20,7 @@ contract Encoder is Messages {
     uint8 public constant TOKEN_STREAM_UPDATE = 14;
     uint8 public constant CANCEL_SOL = 15;
     uint8 public constant CANCEL_TOKEN = 16;
+    uint8 public constant DIRECT_TRANSFER = 17;
 
     function encode_native_stream(Messages.ProcessStream memory processStream) public pure returns (bytes memory encoded){
         encoded = abi.encodePacked(
@@ -71,7 +72,8 @@ contract Encoder is Messages {
             processStream.toChain,
             processStream.sender,
             processStream.receiver,
-            processStream.token_mint
+            processStream.token_mint,
+            processStream.data_account_address
         );
     }
 
@@ -88,7 +90,9 @@ contract Encoder is Messages {
             TOKEN_WITHDRAW_STREAM,
             processWithdrawStream.toChain,
             processWithdrawStream.withdrawer,
-            processWithdrawStream.token_mint
+            processWithdrawStream.token_mint,
+            processWithdrawStream.sender_address,
+            processWithdrawStream.data_account_address
         );
     }
 
@@ -124,7 +128,9 @@ contract Encoder is Messages {
             PAUSE_TOKEN,
             pauseStream.toChain,
             pauseStream.sender,
-            pauseStream.token_mint
+            pauseStream.token_mint,
+            pauseStream.reciever_address,
+            pauseStream.data_account_address
         );
     }
 
@@ -141,7 +147,9 @@ contract Encoder is Messages {
             CANCEL_TOKEN,
             cancelStream.toChain,
             cancelStream.sender,
-            cancelStream.token_mint
+            cancelStream.token_mint,
+            cancelStream.reciever_address,
+            cancelStream.data_account_address
         );
     }
 
@@ -179,7 +187,19 @@ contract Encoder is Messages {
             processTransfer.amount,
             processTransfer.toChain,
             processTransfer.sender,
-            processTransfer.token_mint
+            processTransfer.token_mint,
+            processTransfer.receiver
+        );
+    }
+
+    function encode_process_direct_transfer(Messages.ProcessTransferToken memory processTransfer) public pure returns (bytes memory encoded){
+        encoded = abi.encodePacked(
+            DIRECT_TRANSFER,
+            processTransfer.amount,
+            processTransfer.toChain,
+            processTransfer.sender,
+            processTransfer.token_mint,
+            processTransfer.receiver
         );
     }
 }
