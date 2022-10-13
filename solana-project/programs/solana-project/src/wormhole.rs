@@ -1,8 +1,8 @@
 use anchor_lang::prelude::*;
 use borsh::{BorshDeserialize, BorshSerialize};
-use std::{
-    io::Write,
-};
+use std::{io::Write, str::FromStr};
+
+use crate::constants::CORE_BRIDGE_ADDRESS;
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
 pub struct PostMessageData {
@@ -19,11 +19,11 @@ pub struct PostMessageData {
 #[derive(AnchorDeserialize, AnchorSerialize)]
 pub enum ConsistencyLevel {
     Confirmed,
-    Finalized
+    Finalized,
 }
 
 #[derive(AnchorDeserialize, AnchorSerialize)]
-pub enum Instruction{
+pub enum Instruction {
     Initialize,
     PostMessage,
     PostVAA,
@@ -107,5 +107,14 @@ impl AnchorDeserialize for PostedMessageData {
         Ok(PostedMessageData(
             <MessageData as BorshDeserialize>::deserialize(buf)?,
         ))
+    }
+}
+
+#[derive(Clone)]
+pub struct WormholeCoreBridge;
+
+impl anchor_lang::Id for WormholeCoreBridge {
+    fn id() -> Pubkey {
+        Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
     }
 }

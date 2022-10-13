@@ -1,18 +1,15 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::Token;
+use anchor_spl::token::TokenAccount;
 // use anchor_lang::solana_program::keccak::Hash;
-
 use crate::constants::*;
+use crate::portal::TokenPortalBridge;
 // use crate::instruction;
 use crate::state::*;
 use std::str::FromStr;
 use anchor_lang::solana_program::sysvar::{rent, clock};
 use crate::wormhole::*;
 use hex::decode;
-// use anchor_spl::{
-//     token::{
-//         Mint
-//     }
-// };
 
 // pub const PREFIX_TOKEN: &str = "withdraw_token";
 
@@ -23,7 +20,7 @@ pub struct Initialize<'info> {
         seeds=[b"config".as_ref()],
         payer=owner,
         bump,
-        space=8+32+32+1024
+        space=8+32+8+1
     )]
     pub config: Account<'info, Config>,
     #[account(mut)]
@@ -329,3 +326,256 @@ pub struct ExecuteTransaction<'info> {
     pub transaction: Box<Account<'info, Transaction>>,
 }
 
+#[derive(Accounts)]
+#[instruction( 
+    sender: Vec<u8>,
+    sender_chain: Vec<u8>,
+)]
+pub struct TransferNative<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"config"],
+        bump,
+    )]
+    pub config: Account<'info, Config>,
+
+    #[account(
+        mut,
+        seeds = [&sender, &sender_chain],
+        bump
+    )]
+    /// CHECK: xchain user
+    pub from_owner: AccountInfo<'info>,
+    
+    #[account(
+        mut,
+        seeds = [b"config"],
+        seeds::program = portal_bridge_program.key(),
+        bump,
+    )]
+    /// CHECK: portal config
+    pub portal_config: AccountInfo<'info>,
+    
+    #[account(
+        mut,
+        constraint = from.owner == from_owner.key(),
+        constraint = from.mint == mint.key(),
+    )]
+    pub from: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    /// CHECK: No need of data
+    pub mint: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [mint.key().as_ref()],
+        seeds::program = portal_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: portal custody
+    pub portal_custody: AccountInfo<'info>,
+
+    #[account(
+        seeds = [b"authority_signer"],
+        seeds::program = portal_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: portal authority signer
+    pub portal_authority_signer: AccountInfo<'info>,
+
+    #[account(
+        seeds = [b"custody_signer"],
+        seeds::program = portal_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: portal custody signer
+    pub portal_custody_signer: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"Bridge"],
+        seeds::program = core_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: bridge config
+    pub bridge_config: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        signer
+    )]
+    /// CHECK: portal message
+    pub portal_message: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"emitter"],
+        seeds::program = portal_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: portal emitter
+    pub portal_emitter: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"Sequence", portal_emitter.key().as_ref()],
+        seeds::program = core_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: portal sequence
+    pub portal_sequence: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"fee_collector"],
+        seeds::program = core_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: bridge fee collector
+    pub bridge_fee_collector: AccountInfo<'info>,
+
+    pub clock: Sysvar<'info, Clock>,
+
+    pub rent: Sysvar<'info, Rent>,
+
+    pub system_program: Program<'info, System>,
+
+    pub portal_bridge_program: Program<'info, TokenPortalBridge>,
+
+    pub core_bridge_program: Program<'info, WormholeCoreBridge>,
+
+    pub token_program: Program<'info, Token>
+}
+
+#[derive(Accounts)]
+#[instruction( 
+    sender: Vec<u8>,
+    sender_chain: Vec<u8>,
+)]
+pub struct TransferWrapped<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"config"],
+        bump,
+    )]
+    pub config: Account<'info, Config>,
+        
+    #[account(
+        mut,
+        constraint = from.owner == from_owner.key(),
+        constraint = from.mint == wrapped_mint.key(),
+    )]
+    pub from: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        seeds = [&sender, &sender_chain],
+        bump
+    )]
+    /// CHECK: xchain user
+    pub from_owner: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"config"],
+        seeds::program = portal_bridge_program.key(),
+        bump,
+    )]
+    /// CHECK: portal config
+    pub portal_config: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            b"wrapped",
+            sender_chain.as_ref(),
+            token_program.key().as_ref()
+        ],
+        seeds::program = portal_bridge_program.key(),
+        bump,
+    )]
+    /// CHECK: portal config
+    pub wrapped_mint: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            b"meta",
+            wrapped_mint.key().as_ref()
+        ],
+        seeds::program = portal_bridge_program.key(),
+        bump,
+    )]
+    /// CHECK: portal config
+    pub wrapped_meta: AccountInfo<'info>,
+
+    #[account(
+        seeds = [b"authority_signer"],
+        seeds::program = portal_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: portal authority signer
+    pub portal_authority_signer: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"Bridge"],
+        seeds::program = core_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: bridge config
+    pub bridge_config: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        signer
+    )]
+    /// CHECK: portal message
+    pub portal_message: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"emitter"],
+        seeds::program = portal_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: portal emitter
+    pub portal_emitter: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"Sequence", portal_emitter.key().as_ref()],
+        seeds::program = core_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: portal sequence
+    pub portal_sequence: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"fee_collector"],
+        seeds::program = core_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: bridge fee collector
+    pub bridge_fee_collector: AccountInfo<'info>,
+
+    pub clock: Sysvar<'info, Clock>,
+
+    pub rent: Sysvar<'info, Rent>,
+
+    pub system_program: Program<'info, System>,
+
+    pub portal_bridge_program: Program<'info, TokenPortalBridge>,
+
+    pub core_bridge_program: Program<'info, WormholeCoreBridge>,
+
+    pub token_program: Program<'info, Token>
+}

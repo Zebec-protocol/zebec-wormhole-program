@@ -5,17 +5,16 @@ use borsh::{BorshDeserialize, BorshSerialize};
 
 #[account]
 #[derive(Default)]
-pub struct Config{
+pub struct Config {
     pub owner: Pubkey,
     pub nonce: u32,
-    pub current_msg: Vec<u8>
 }
 
 #[account]
 #[derive(Default)]
-pub struct EmitterAddrAccount{
+pub struct EmitterAddrAccount {
     pub chain_id: u16,
-    pub emitter_addr: String
+    pub emitter_addr: String,
 }
 
 //Empty account, we just need to check that it *exists*
@@ -49,7 +48,7 @@ pub struct TransactionData {
     pub start_time: u64,
     pub end_time: u64,
     pub can_update: bool,
-    pub can_cancel: bool
+    pub can_cancel: bool,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone)]
@@ -61,13 +60,13 @@ pub struct TransactionAccount {
 
 #[account]
 #[derive(Default)]
-pub struct Count{
+pub struct Count {
     pub count: u8,
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct TokenAmount {
-    pub amount: u64
+    pub amount: u64,
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -76,15 +75,29 @@ pub struct Stream {
     pub end_time: u64,
     pub amount: u64,
     pub can_cancel: bool,
-    pub can_update: bool
+    pub can_update: bool,
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct StreamUpdate {
     pub start_time: u64,
     pub end_time: u64,
-    pub amount: u64
+    pub amount: u64,
 }
+
+#[account]
+pub struct Receipt {
+    pub amt_to_mint: u64,
+    pub foreign_receipient: [u8; 32],
+    pub foreign_chain: u16,
+    pub claimed: bool,
+}
+
+#[account]
+pub struct MintInfo {
+    pub mint: Pubkey,
+}
+
 impl From<&Transaction> for Instruction {
     fn from(tx: &Transaction) -> Instruction {
         Instruction {
@@ -113,4 +126,3 @@ impl From<&AccountMeta> for TransactionAccount {
         }
     }
 }
-

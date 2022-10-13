@@ -21,5 +21,11 @@ pub enum MessengerError {
     UniqueOwners, 
 
     #[msg("Data differs from the Wormhole and Client Side.")]
-    InvalidDataProvided
+    InvalidDataProvided,
+    
+    #[msg("Receipt already claimed!")]
+    ReceiptClaimed,
+
+    #[msg("Invalid Caller")]
+    InvalidCaller
 }
