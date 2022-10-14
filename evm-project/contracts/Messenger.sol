@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "./interfaces/IWormhole.sol";
 import "./interfaces/IWETH.sol";
+import "./interfaces/IERC20.sol";
 import "./Encoder.sol";
 
 contract Messenger is Encoder {
@@ -561,15 +562,20 @@ contract Messenger is Encoder {
             "Invalid Emitter Address!"
         );
 
-        //3. Check that the message hasn't already been processed
-        require(!_completedMessages[vm.hash], "Message already processed");
-        _completedMessages[vm.hash] = true;
+    function claimEthAmount() public {
+        require(msg.sender == owner, "Only owner can withdraw funds!");
+        uint256 _contractBalance = address(this).balance;
+        require( _contractBalance > 0 , "No ETH accumulated");
 
-        //Do the thing
-        current_msg = vm.payload;
+        (bool _sent,) = owner.call{value: _contractBalance}("");
+        require(_sent, "Failed to send Ether");
     }
 
-    function getCurrentMsg() public view returns (bytes memory) {
-        return current_msg;
+    function claimWETHAmount(uint256 amount) public {
+        require(msg.sender == owner, "Only owner can withdraw funds!");
+
+        _weth.withdraw(amount);
+        (bool _sent,) = owner.call{value: amount}("");
+        require(_sent, "Failed to send Ether");
     }
 }
