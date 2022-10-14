@@ -53,24 +53,6 @@ contract Messenger is Encoder {
         owner = msg.sender;
     }
 
-    function wormhole() public view returns (IWormhole) {
-        return _wormhole;
-    }
-
-
-    function WETH() public view returns (IWETH) {
-        return _weth;
-    }
-
-    function wormhole_fee() public view returns (uint256) {
-        return _wormhole_fee;
-    }
-
-    function sendMsg(bytes memory str) public returns (uint64 sequence) {
-         _bridgeInstructionInWormhole(nonce, str, 1);
-        nonce = nonce + 1;
-    }
-
     function process_deposit_sol(
         uint64 amount, 
         bytes memory depositor,
@@ -492,9 +474,9 @@ contract Messenger is Encoder {
         nonce = nonce + 1;
     }
 
-    function _bridgeInstructionInWormhole(uint32 nonce, bytes memory stream, uint256 arbiterFee) internal returns(uint64 sequence){
+    function _bridgeInstructionInWormhole(uint32 nonceValue, bytes memory stream, uint256 arbiterFee) internal returns(uint64 sequence){
 
-        uint256 wormholeFee = wormhole().messageFee();
+        uint256 wormholeFee = _wormhole.messageFee();
 
         require(wormholeFee < msg.value, "value is smaller than wormhole fee");
 
@@ -506,21 +488,17 @@ contract Messenger is Encoder {
         uint256 normalizedArbiterFee = normalizeAmount(arbiterFee, 18);
 
         // refund dust
-        uint dust = amount - deNormalizeAmount(normalizedAmount, 18);
+        uint dust = amount - deNormalizeAmount(normalizedAmount, 18) - deNormalizeAmount(normalizedArbiterFee, 18);
         if (dust > 0) {
             payable(msg.sender).transfer(dust);
         }
 
         // deposit into WETH
-        WETH().deposit{
+        _weth.deposit{
             value : amount - dust
         }();
 
-        // sequence = wormhole().publishMessage{
-        //     value : msg.value
-        // }(nonce, stream, CONSISTENCY_LEVEL);
-
-        sequence = wormhole().publishMessage(nonce, stream, CONSISTENCY_LEVEL);
+        sequence = _wormhole.publishMessage(nonceValue, stream, CONSISTENCY_LEVEL);
     }
 
     function normalizeAmount(uint256 amount, uint8 decimals) internal pure returns(uint256){
@@ -556,11 +534,10 @@ contract Messenger is Encoder {
         return chainId;
     }
 
-        //2. Check if the Emitter Chain contract is registered
-        require(
-            _applicationContracts[vm.emitterChainId] == vm.emitterAddress,
-            "Invalid Emitter Address!"
-        );
+    function changeAdmin(address _owner) public {
+        require(msg.sender == owner, "Only owner can change admin!");
+        owner = _owner;
+    }
 
     function claimEthAmount() public {
         require(msg.sender == owner, "Only owner can withdraw funds!");
