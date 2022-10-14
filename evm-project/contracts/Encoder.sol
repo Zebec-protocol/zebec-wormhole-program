@@ -177,6 +177,7 @@ contract Encoder is Messages {
             INSTANT_SOL,
             processTransfer.amount,
             processTransfer.toChain,
+            processTransfer.withdrawer,
             processTransfer.sender
         );
     }
