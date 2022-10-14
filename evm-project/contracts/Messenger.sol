@@ -78,7 +78,7 @@ contract Messenger is Encoder {
         bytes memory sol_stream = Encoder.encode_process_deposit_sol(
             Messages.ProcessDeposit({
                 amount: amount,
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 depositor: depositor
             })
         );
@@ -100,7 +100,7 @@ contract Messenger is Encoder {
         bytes memory token_stream = Encoder.encode_process_deposit_token(
             Messages.ProcessDepositToken({
                 amount: amount,
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 depositor: depositor,
                 token_mint: token_mint
             })
@@ -129,7 +129,7 @@ contract Messenger is Encoder {
                 start_time: start_time,
                 end_time: end_time,
                 amount: amount,
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 sender: sender,
                 receiver: receiver,
                 can_cancel: can_cancel,
@@ -161,7 +161,7 @@ contract Messenger is Encoder {
                 start_time: start_time,
                 end_time: end_time,
                 amount: amount,
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 sender: sender,
                 receiver: receiver,
                 can_cancel: can_cancel,
@@ -191,7 +191,7 @@ contract Messenger is Encoder {
                 start_time: start_time,
                 end_time: end_time,
                 amount: amount,
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 sender: sender,
                 receiver: receiver
             })
@@ -220,7 +220,7 @@ contract Messenger is Encoder {
                 start_time: start_time,
                 end_time: end_time,
                 amount: amount,
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 sender: sender,
                 receiver: receiver,
                 token_mint: token_mint,
@@ -243,7 +243,7 @@ contract Messenger is Encoder {
     ) public payable returns (uint64 sequence){
         bytes memory sol_stream = Encoder.encode_native_withdraw_stream(
             Messages.ProcessWithdrawStream({
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 withdrawer: withdrawer
             })
         );
@@ -265,7 +265,7 @@ contract Messenger is Encoder {
     ) public payable returns (uint64 sequence) {
         bytes memory token_stream = Encoder.encode_token_withdraw_stream(
             Messages.ProcessWithdrawStreamToken({
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 withdrawer: withdrawer,
                 token_mint: token_mint,
                 sender_address: sender_address,
@@ -287,7 +287,7 @@ contract Messenger is Encoder {
     ) public payable returns (uint64 sequence) {
         bytes memory sol_stream = Encoder.encode_process_pause_native_stream(
             Messages.PauseStream({
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 sender: sender
             })
         );
@@ -309,7 +309,7 @@ contract Messenger is Encoder {
     ) public payable returns (uint64 sequence) {
         bytes memory sol_stream = Encoder.encode_process_pause_token_stream(
             Messages.PauseStreamToken({
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 sender: sender,
                 token_mint: token_mint,
                 reciever_address: reciever_address,
@@ -332,7 +332,7 @@ contract Messenger is Encoder {
     ) public payable returns (uint64 sequence) {
         bytes memory sol_stream = Encoder.encode_process_cancel_native_stream(
             Messages.CancelStream({
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 sender: sender
             })
         );
@@ -354,7 +354,7 @@ contract Messenger is Encoder {
     ) public payable returns (uint64 sequence) {
         bytes memory sol_stream = Encoder.encode_process_cancel_token_stream(
             Messages.CancelStreamToken({
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 sender: sender,
                 token_mint: token_mint,
                 reciever_address: reciever_address,
@@ -380,7 +380,7 @@ contract Messenger is Encoder {
         bytes memory sol_stream = Encoder.encode_process_instant_native_transfer(
             Messages.ProcessTransfer({
                 amount: amount,
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 withdrawer: withdrawer,
                 sender: sender
             })
@@ -405,8 +405,8 @@ contract Messenger is Encoder {
         bytes memory token_stream = Encoder.encode_process_instant_token_transfer(
             Messages.ProcessTransferToken({
                 amount: amount,
-                toChain: CHAIN_ID,
-                sender: sender,
+                toChain: getChainId(),
+                withdrawer: withdrawer,
                 token_mint: token_mint,
                 receiver: receiver
             })
@@ -429,7 +429,7 @@ contract Messenger is Encoder {
         bytes memory sol_stream = Encoder.encode_process_native_withdrawal(
             Messages.ProcessWithdraw({
                 amount: amount,
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 withdrawer: sender
             })
         );
@@ -452,7 +452,7 @@ contract Messenger is Encoder {
         bytes memory token_stream = Encoder.encode_process_token_withdrawal(
             Messages.ProcessWithdrawToken({
                 amount: amount,
-                toChain: CHAIN_ID,
+                toChain: getChainId(),
                 withdrawer: sender,
                 token_mint: token_mint
             })
@@ -476,8 +476,8 @@ contract Messenger is Encoder {
         bytes memory token_stream = Encoder.encode_process_direct_transfer(
             Messages.ProcessTransferToken({
                 amount: amount,
-                toChain: CHAIN_ID,
-                sender: sender,
+                toChain: getChainId(),
+                withdrawer: withdrawer,
                 token_mint: token_mint,
                 receiver: receiver
             })
@@ -549,14 +549,11 @@ contract Messenger is Encoder {
         _applicationContracts[chainId] = applicationAddr;
     }
 
-    function receiveEncodedMsg(bytes memory encodedMsg) public {
-        (IWormhole.VM memory vm, bool valid, string memory reason) = wormhole()
-            .parseAndVerifyVM(encodedMsg);
-
-        //1. Check Wormhole Guardian Signatures
-        //  If the VM is NOT valid, will return the reason it's not valid
-        //  If the VM IS valid, reason will be blank
-        require(valid, reason);
+     function getChainId() internal view returns (uint256) {
+        uint256 chainId;
+        assembly { chainId := chainid() }
+        return chainId;
+    }
 
         //2. Check if the Emitter Chain contract is registered
         require(
