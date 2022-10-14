@@ -9,17 +9,15 @@ contract Messenger is Encoder {
     bytes16 private constant _HEX_SYMBOLS = "0123456789abcdef";
     uint8 private constant _ADDRESS_LENGTH = 20;
 
-    uint16 public constant CHAIN_ID = 4; //3
+    address public owner;
     uint8 public constant CONSISTENCY_LEVEL = 1; //15
     uint32 nonce = 0;
 
-    IWormhole _wormhole;
-    IWETH _weth;
+    IWormhole public _wormhole;
+    IWETH public _weth;
     uint256 public _wormhole_fee;
     
-    mapping(bytes32 => bool) _completedMessages;
-    bytes private current_msg;
-    mapping(uint16 => bytes32) _applicationContracts;
+    mapping(uint16 => bytes32) public _applicationContracts;
 
     event DepositSol(bytes depositor, uint64 amount, uint32 nonce);
     event DepositToken(bytes depositor, bytes tokenMint, uint64 amount, uint32 nonce);
