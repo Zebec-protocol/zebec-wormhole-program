@@ -57,8 +57,9 @@ contract Messenger is Encoder {
         uint64 amount, 
         bytes memory depositor,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence){
-        bytes memory sol_stream = Encoder.encode_process_deposit_sol(
+    ) public payable {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_process_deposit_sol(
             Messages.ProcessDeposit({
                 amount: amount,
                 toChain: getChainId(),
@@ -67,11 +68,10 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            sol_stream,
+            encoded_data,
             arbiter_fee
         );
         emit DepositSol(depositor, amount, nonce);
-        nonce = nonce + 1;
     }
 
     function process_deposit_token(
@@ -79,8 +79,9 @@ contract Messenger is Encoder {
         bytes memory depositor,
         bytes memory token_mint,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence){
-        bytes memory token_stream = Encoder.encode_process_deposit_token(
+    ) public payable {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_process_deposit_token(
             Messages.ProcessDepositToken({
                 amount: amount,
                 toChain: getChainId(),
@@ -90,11 +91,10 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            token_stream,
+            encoded_data,
             arbiter_fee
         );
         emit DepositToken(depositor, token_mint, amount, nonce);
-        nonce = nonce + 1;
     }
 
     function process_native_stream(
@@ -106,8 +106,9 @@ contract Messenger is Encoder {
         uint64 can_cancel,
         uint64 can_update,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence) {
-        bytes memory sol_stream = Encoder.encode_native_stream(
+    ) public payable  {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_native_stream(
             Messages.ProcessStream({
                 start_time: start_time,
                 end_time: end_time,
@@ -121,11 +122,10 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            sol_stream,
+            encoded_data,
             arbiter_fee
         );
         emit NativeStream(sender, receiver, amount, nonce);
-        nonce = nonce + 1;
     }
 
     function process_token_stream(
@@ -138,8 +138,9 @@ contract Messenger is Encoder {
         uint64 can_update,
         bytes memory token_mint,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence) {
-        bytes memory token_stream = Encoder.encode_token_stream(
+    ) public payable  {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_token_stream(
             Messages.ProcessStreamToken({
                 start_time: start_time,
                 end_time: end_time,
@@ -154,11 +155,10 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            token_stream,
+            encoded_data,
             arbiter_fee
         );
         emit TokenStream(sender, receiver, token_mint, amount, nonce);
-        nonce = nonce + 1;
     }
 
     function process_native_stream_update(
@@ -168,8 +168,9 @@ contract Messenger is Encoder {
         bytes memory receiver,
         bytes memory sender,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence) {
-        bytes memory sol_stream = Encoder.encode_native_stream_update(
+    ) public payable  {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_native_stream_update(
             Messages.UpdateStream({
                 start_time: start_time,
                 end_time: end_time,
@@ -181,11 +182,10 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            sol_stream,
+            encoded_data,
             arbiter_fee
         );
         emit NativeStreamUpdate(sender, receiver, amount, nonce);
-        nonce = nonce + 1;
     }
 
     function process_token_stream_update(
@@ -197,8 +197,9 @@ contract Messenger is Encoder {
         bytes memory token_mint,
         bytes memory data_account_address,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence) {
-        bytes memory sol_stream = Encoder.encode_token_stream_update(
+    ) public payable  {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_token_stream_update(
             Messages.UpdateStreamToken({
                 start_time: start_time,
                 end_time: end_time,
@@ -212,19 +213,19 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            sol_stream,
+            encoded_data,
             arbiter_fee
         );
         emit TokenStreamUpdate(sender, receiver, token_mint, amount, nonce);
-        nonce = nonce + 1;
     }
 
     // receiver will withdraw using this
     function process_native_withdraw_stream(
         bytes memory withdrawer,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence){
-        bytes memory sol_stream = Encoder.encode_native_withdraw_stream(
+    ) public payable {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_native_withdraw_stream(
             Messages.ProcessWithdrawStream({
                 toChain: getChainId(),
                 withdrawer: withdrawer
@@ -232,11 +233,10 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            sol_stream,
+            encoded_data,
             arbiter_fee
         );
         emit WithdrawStream(withdrawer, nonce);
-        nonce = nonce + 1;
     }
 
     function process_token_withdraw_stream(
@@ -245,8 +245,9 @@ contract Messenger is Encoder {
         bytes memory sender_address,
         bytes memory data_account_address,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence) {
-        bytes memory token_stream = Encoder.encode_token_withdraw_stream(
+    ) public payable  {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_token_withdraw_stream(
             Messages.ProcessWithdrawStreamToken({
                 toChain: getChainId(),
                 withdrawer: withdrawer,
@@ -257,18 +258,18 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            token_stream,
+            encoded_data,
             arbiter_fee
         );
         emit WithdrawToken(withdrawer, token_mint, nonce);
-        nonce = nonce + 1;
     }
 
     function process_pause_native_stream(
         bytes memory sender,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence) {
-        bytes memory sol_stream = Encoder.encode_process_pause_native_stream(
+    ) public payable  {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_process_pause_native_stream(
             Messages.PauseStream({
                 toChain: getChainId(),
                 sender: sender
@@ -276,11 +277,10 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            sol_stream,
+            encoded_data,
             arbiter_fee
         );
         emit PauseNativeStream(sender, nonce);
-        nonce = nonce + 1;
     }
 
    function process_pause_token_stream(
@@ -289,8 +289,9 @@ contract Messenger is Encoder {
         bytes memory reciever_address,
         bytes memory data_account_address,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence) {
-        bytes memory sol_stream = Encoder.encode_process_pause_token_stream(
+    ) public payable  {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_process_pause_token_stream(
             Messages.PauseStreamToken({
                 toChain: getChainId(),
                 sender: sender,
@@ -301,19 +302,19 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            sol_stream,
+            encoded_data,
             arbiter_fee
         );
         emit PauseTokenStream(sender, token_mint, nonce);
-        nonce = nonce + 1;
     }
 
     function process_cancel_native_stream(
         bytes memory sender,
         uint256 arbiter_fee
 
-    ) public payable returns (uint64 sequence) {
-        bytes memory sol_stream = Encoder.encode_process_cancel_native_stream(
+    ) public payable  {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_process_cancel_native_stream(
             Messages.CancelStream({
                 toChain: getChainId(),
                 sender: sender
@@ -321,11 +322,10 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            sol_stream,
+            encoded_data,
             arbiter_fee
         );
         emit CancelNativeStream(sender, nonce);
-        nonce = nonce + 1;
     }
 
     function process_cancel_token_stream(
@@ -334,8 +334,9 @@ contract Messenger is Encoder {
         bytes memory reciever_address,
         bytes memory data_account_address,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence) {
-        bytes memory sol_stream = Encoder.encode_process_cancel_token_stream(
+    ) public payable  {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_process_cancel_token_stream(
             Messages.CancelStreamToken({
                 toChain: getChainId(),
                 sender: sender,
@@ -346,11 +347,10 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            sol_stream,
+            encoded_data,
             arbiter_fee
         );
         emit CancelTokenStream(sender, token_mint, nonce);
-        nonce = nonce + 1;
     }
 
     // sender will transfer to receiver
@@ -359,8 +359,9 @@ contract Messenger is Encoder {
         bytes memory sender,
         bytes memory withdrawer,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence){
-        bytes memory sol_stream = Encoder.encode_process_instant_native_transfer(
+    ) public payable {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_process_instant_native_transfer(
             Messages.ProcessTransfer({
                 amount: amount,
                 toChain: getChainId(),
@@ -370,37 +371,36 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            sol_stream,
+            encoded_data,
             arbiter_fee
         );
         emit InstantNativeTransfer(sender, amount, nonce);
-        nonce = nonce + 1;
     }
 
     // sender will transfer to receiver
     function process_instant_token_transfer(
         uint64 amount, 
         bytes memory sender,
-        bytes memory receiver,
+        bytes memory withdrawer,
         bytes memory token_mint,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence){
-        bytes memory token_stream = Encoder.encode_process_instant_token_transfer(
+    ) public payable {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_process_instant_token_transfer(
             Messages.ProcessTransferToken({
                 amount: amount,
                 toChain: getChainId(),
                 withdrawer: withdrawer,
                 token_mint: token_mint,
-                receiver: receiver
+                sender: sender
             })
         );
          _bridgeInstructionInWormhole(
             nonce,
-            token_stream,
+            encoded_data,
             arbiter_fee
         );
         emit InstantTokenTransfer(sender, token_mint, amount, nonce);
-        nonce = nonce + 1;
     }
 
     // sender will withdraw 
@@ -408,8 +408,9 @@ contract Messenger is Encoder {
         uint64 amount, 
         bytes memory sender,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence){
-        bytes memory sol_stream = Encoder.encode_process_native_withdrawal(
+    ) public payable {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_process_native_withdrawal(
             Messages.ProcessWithdraw({
                 amount: amount,
                 toChain: getChainId(),
@@ -418,11 +419,10 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            sol_stream,
+            encoded_data,
             arbiter_fee
         );
         emit NativeWithdrawal(sender, amount, nonce);
-        nonce = nonce + 1;
     }
 
     // sender will withdraw 
@@ -431,8 +431,9 @@ contract Messenger is Encoder {
         bytes memory sender,
         bytes memory token_mint,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence){
-        bytes memory token_stream = Encoder.encode_process_token_withdrawal(
+    ) public payable {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_process_token_withdrawal(
             Messages.ProcessWithdrawToken({
                 amount: amount,
                 toChain: getChainId(),
@@ -442,11 +443,10 @@ contract Messenger is Encoder {
         );
          _bridgeInstructionInWormhole(
             nonce,
-            token_stream,
+            encoded_data,
             arbiter_fee
         );
         emit TokenWithdrawal(sender, token_mint, amount, nonce);
-        nonce = nonce + 1;
     }
 
     function process_direct_transfer(
@@ -455,23 +455,23 @@ contract Messenger is Encoder {
         bytes memory token_mint,
         bytes memory receiver,
         uint256 arbiter_fee
-    ) public payable returns (uint64 sequence){
-        bytes memory token_stream = Encoder.encode_process_direct_transfer(
+    ) public payable {
+        nonce++;
+        bytes memory encoded_data = Encoder.encode_process_direct_transfer(
             Messages.ProcessTransferToken({
                 amount: amount,
                 toChain: getChainId(),
-                withdrawer: withdrawer,
+                receiver: receiver,
                 token_mint: token_mint,
-                receiver: receiver
+                sender: sender
             })
         );
          _bridgeInstructionInWormhole(
             nonce,
-            token_stream,
+            encoded_data,
             arbiter_fee
         );
         emit DirectTransfer(sender, receiver, token_mint, amount, nonce);
-        nonce = nonce + 1;
     }
 
     function _bridgeInstructionInWormhole(uint32 nonceValue, bytes memory stream, uint256 arbiterFee) internal returns(uint64 sequence){
