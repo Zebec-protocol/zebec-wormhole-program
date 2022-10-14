@@ -45,11 +45,11 @@ contract Messenger is Encoder {
     
     event DirectTransfer(bytes sender, bytes receiver, bytes tokenMint, uint64 amount, uint32 nonce);
 
-    constructor() {
-        // constructor(address wormholeAddress, uint256 wormholeFee, address weth) {
-        _wormhole = IWormhole(0x706abc4E45D419950511e474C7B9Ed348A4a716c);
-        _weth = IWETH(0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6);
-        _wormhole_fee = 0.01 ether;
+    constructor(address wormholeAddress, uint256 wormholeFee, address weth) {
+        _wormhole = IWormhole(wormholeAddress); //0x706abc4E45D419950511e474C7B9Ed348A4a716c
+        _weth = IWETH(weth); //0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6
+        _wormhole_fee = wormholeFee;
+        owner = msg.sender;
     }
 
     function wormhole() public view returns (IWormhole) {
