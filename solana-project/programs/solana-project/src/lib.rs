@@ -121,7 +121,7 @@ pub mod solana_project {
         Ok(())
     }
 
-    pub fn store_msg(ctx: Context<StoreMsg>, current_count: u8) -> Result<()> {
+    pub fn store_msg(ctx: Context<StoreMsg>, current_count: u8, sender: Vec<u8>) -> Result<()> {
         //Hash a VAA Extract and derive a VAA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
         let serialized_vaa = serialize_vaa(&vaa);
@@ -1088,6 +1088,7 @@ pub mod solana_project {
         sender: Vec<u8>,
         sender_chain: Vec<u8>,
         target_chain: u16,
+        token_address: Vec<u8>,
         amount: u64,
         fee: u64,
     ) -> Result<()> {

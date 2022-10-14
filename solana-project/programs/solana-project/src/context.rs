@@ -455,6 +455,8 @@ pub struct TransferNative<'info> {
 #[instruction( 
     sender: Vec<u8>,
     sender_chain: Vec<u8>,
+    token_address: Vec<u8>,
+    target_chain: u16,
 )]
 pub struct TransferWrapped<'info> {
     #[account(mut)]
@@ -495,8 +497,8 @@ pub struct TransferWrapped<'info> {
         mut,
         seeds = [
             b"wrapped",
-            sender_chain.as_ref(),
-            token_program.key().as_ref()
+            target_chain.to_le_bytes().as_ref(),
+            token_address.as_ref()
         ],
         seeds::program = portal_bridge_program.key(),
         bump,
