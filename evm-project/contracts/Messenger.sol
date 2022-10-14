@@ -390,9 +390,9 @@ contract Messenger is Encoder {
             Messages.ProcessTransferToken({
                 amount: amount,
                 toChain: getChainId(),
-                withdrawer: withdrawer,
+                sender: sender,
                 token_mint: token_mint,
-                sender: sender
+                receiver: withdrawer
             })
         );
          _bridgeInstructionInWormhole(
