@@ -390,7 +390,7 @@ contract Messenger is Encoder {
             Messages.ProcessTransferToken({
                 amount: amount,
                 toChain: getChainId(),
-                withdrawer: withdrawer,
+                receiver: withdrawer,
                 token_mint: token_mint,
                 sender: sender
             })
