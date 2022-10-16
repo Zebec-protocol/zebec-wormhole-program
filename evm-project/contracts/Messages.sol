@@ -10,7 +10,7 @@ contract Messages {
         uint64 start_time;
         uint64 end_time;
         uint64 amount;
-        uint16 toChain;
+        uint256 toChain;
         bytes sender;
         bytes receiver;
     }
@@ -19,7 +19,7 @@ contract Messages {
         uint64 start_time;
         uint64 end_time;
         uint64 amount;
-        uint16 toChain;
+        uint256 toChain;
         bytes sender;
         bytes receiver;
         bytes token_mint;
@@ -30,7 +30,7 @@ contract Messages {
         uint64 start_time;
         uint64 end_time;
         uint64 amount;
-        uint16 toChain;
+        uint256 toChain;
         bytes sender;
         bytes receiver;
         uint64 can_cancel;
@@ -41,7 +41,7 @@ contract Messages {
         uint64 start_time;
         uint64 end_time;
         uint64 amount;
-        uint16 toChain;
+        uint256 toChain;
         bytes sender;
         bytes receiver;
         uint64 can_cancel;
@@ -50,12 +50,12 @@ contract Messages {
     }
 
     struct ProcessWithdrawStream {
-        uint16 toChain;
+        uint256 toChain;
         bytes withdrawer;
     }
 
     struct ProcessWithdrawStreamToken {
-        uint16 toChain;
+        uint256 toChain;
         bytes withdrawer;
         bytes token_mint;
         bytes sender_address;
@@ -63,12 +63,12 @@ contract Messages {
     }
     
     struct PauseStream {
-        uint16 toChain;
+        uint256 toChain;
         bytes sender;
     }
 
     struct PauseStreamToken {
-        uint16 toChain;
+        uint256 toChain;
         bytes sender;
         bytes token_mint;
         bytes reciever_address;
@@ -76,12 +76,12 @@ contract Messages {
     }
 
     struct CancelStream {
-        uint16 toChain;
+        uint256 toChain;
         bytes sender;
     }
 
     struct CancelStreamToken {
-        uint16 toChain;
+        uint256 toChain;
         bytes sender;
         bytes token_mint;
         bytes reciever_address;
@@ -90,33 +90,33 @@ contract Messages {
 
     struct ProcessDeposit {
         uint64 amount;
-        uint16 toChain;
+        uint256 toChain;
         bytes depositor;
     }
 
     struct ProcessDepositToken {
         uint64 amount;
-        uint16 toChain;
+        uint256 toChain;
         bytes depositor;
         bytes token_mint;
     }
 
     struct ProcessWithdraw {
         uint64 amount;
-        uint16 toChain;
+        uint256 toChain;
         bytes withdrawer;
     }
 
     struct ProcessTransfer {
         uint64 amount;
-        uint16 toChain;
+        uint256 toChain;
         bytes withdrawer;
         bytes sender;
     }
 
     struct ProcessTransferToken {
         uint64 amount;
-        uint16 toChain;
+        uint256 toChain;
         bytes sender;
         bytes token_mint;
         bytes receiver;
@@ -124,14 +124,14 @@ contract Messages {
 
     struct ProcessWithdrawToken {
         uint64 amount;
-        uint16 toChain;
+        uint256 toChain;
         bytes withdrawer;
         bytes token_mint;
     }
 
     struct InstantWithdrawal {
         uint64 amount;
-        uint16 toChain;
+        uint256 toChain;
         bytes withdrawer;
     }
 }
