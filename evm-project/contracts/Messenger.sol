@@ -529,9 +529,7 @@ contract Messenger is Encoder {
     }
 
      function getChainId() internal view returns (uint256) {
-        uint256 chainId;
-        assembly { chainId := chainid() }
-        return chainId;
+        return _wormhole.chainId();
     }
 
     function changeAdmin(address _owner) public {
