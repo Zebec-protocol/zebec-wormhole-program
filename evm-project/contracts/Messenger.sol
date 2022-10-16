@@ -390,9 +390,9 @@ contract Messenger is Encoder {
             Messages.ProcessTransferToken({
                 amount: amount,
                 toChain: getChainId(),
-                sender: sender,
+                receiver: withdrawer,
                 token_mint: token_mint,
-                receiver: withdrawer
+                sender: sender
             })
         );
          _bridgeInstructionInWormhole(
@@ -529,9 +529,7 @@ contract Messenger is Encoder {
     }
 
      function getChainId() internal view returns (uint256) {
-        uint256 chainId;
-        assembly { chainId := chainid() }
-        return chainId;
+        return _wormhole.chainId();
     }
 
     function changeAdmin(address _owner) public {
@@ -556,3 +554,4 @@ contract Messenger is Encoder {
         require(_sent, "Failed to send Ether");
     }
 }
+
