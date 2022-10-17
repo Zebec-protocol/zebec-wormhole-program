@@ -29,7 +29,7 @@ use wormhole::*;
 
 use std::ops::Deref;
 
-declare_id!("67z6hxWS8XPtogeGHjmns19ytn998FDgmCxztVwWu53o");
+declare_id!("2gpJHHex7rxaxbe6sx9YArSzVFxztqtcGEKaukVAW6WV");
 
 #[program]
 pub mod solana_project {
@@ -849,13 +849,16 @@ pub mod solana_project {
 
     //create and execute direct transfer
     pub fn transaction_direct_transfer(
-        ctx: Context<CETransaction>,
+        ctx: Context<CENativeTransferTransaction>,
         pid: Pubkey,
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         current_count: u8,
         chain_id: Vec<u8>,
         sender: Vec<u8>,
+
+        target_chain: u16,
+        fee: u64,
     ) -> Result<()> {
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -945,7 +948,8 @@ pub mod solana_project {
         msg!("Transaction Execute");
 
         solana_program::program::invoke_signed(&ix, accounts, signer)?;
-        Ok(())
+        
+        transfer_native(ctx, sender, chain_id, target_chain, fee)
     }
 
     pub fn execute_transaction(
@@ -987,6 +991,7 @@ pub mod solana_project {
         Ok(())
     }
 
+    /* 
     pub fn transfer_native(
         ctx: Context<TransferNative>,
         sender: Vec<u8>,
@@ -1082,6 +1087,7 @@ pub mod solana_project {
 
         Ok(())
     }
+    */
 
     pub fn transfer_wrapped(
         ctx: Context<TransferWrapped>,
@@ -1159,6 +1165,104 @@ pub mod solana_project {
             ctx.accounts.wrapped_mint.to_account_info(),
             ctx.accounts.wrapped_meta.to_account_info(),
             ctx.accounts.portal_authority_signer.to_account_info(),
+            ctx.accounts.bridge_config.to_account_info(),
+            ctx.accounts.portal_message.to_account_info(),
+            ctx.accounts.portal_emitter.to_account_info(),
+            ctx.accounts.portal_sequence.to_account_info(),
+            ctx.accounts.bridge_fee_collector.to_account_info(),
+            ctx.accounts.clock.to_account_info(),
+            // Dependencies
+            ctx.accounts.rent.to_account_info(),
+            ctx.accounts.system_program.to_account_info(),
+            // Program
+            ctx.accounts.core_bridge_program.to_account_info(),
+            ctx.accounts.token_program.to_account_info(),
+        ];
+
+        invoke_signed(&transfer_ix, &transfer_accs, signer_seeds)?;
+
+        ctx.accounts.config.nonce += 1;
+
+        Ok(())
+    }
+
+    //transfer 
+    pub fn transfer_native(
+        ctx: Context<CENativeTransferTransaction>,
+        sender: Vec<u8>,
+        sender_chain: Vec<u8>,
+        target_chain: u16,
+        fee: u64,
+    ) -> Result<()>{
+        let amount = ctx.accounts.data_storage.amount;
+        //Check EOA
+        require!(ctx.accounts.config.owner == ctx.accounts.zebec_eoa.key(),  MessengerError::InvalidCaller);
+
+        let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
+
+        let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain, &bump]];
+
+
+        let approve_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            Approve {
+                to: ctx.accounts.from.to_account_info(),
+                delegate: ctx.accounts.portal_authority_signer.to_account_info(),
+                authority: ctx.accounts.pda_signer.to_account_info(),
+            },
+            signer_seeds,
+        );
+
+        // Delgate transfer authority to Token Bridge for the tokens
+        approve(approve_ctx, amount)?;
+
+        let target_address: [u8; 32] = sender.as_slice().try_into().unwrap();
+        // Instruction
+        let transfer_ix = Instruction {
+            program_id: Pubkey::from_str(TOKEN_BRIDGE_ADDRESS).unwrap(),
+            accounts: vec![
+                AccountMeta::new(ctx.accounts.zebec_eoa.key(), true),
+                AccountMeta::new_readonly(ctx.accounts.portal_config.key(), false),
+                AccountMeta::new(ctx.accounts.from.key(), false),
+                AccountMeta::new(ctx.accounts.mint.key(), false),
+                AccountMeta::new(ctx.accounts.portal_custody.key(), false),
+                AccountMeta::new_readonly(ctx.accounts.portal_authority_signer.key(), false),
+                AccountMeta::new_readonly(ctx.accounts.portal_custody_signer.key(), false),
+                AccountMeta::new(ctx.accounts.bridge_config.key(), false),
+                AccountMeta::new(ctx.accounts.portal_message.key(), true),
+                AccountMeta::new_readonly(ctx.accounts.portal_emitter.key(), false),
+                AccountMeta::new(ctx.accounts.portal_sequence.key(), false),
+                AccountMeta::new(ctx.accounts.bridge_fee_collector.key(), false),
+                AccountMeta::new_readonly(ctx.accounts.clock.key(), false),
+                // Dependencies
+                AccountMeta::new_readonly(ctx.accounts.rent.key(), false),
+                AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
+                // Program
+                AccountMeta::new_readonly(ctx.accounts.core_bridge_program.key(), false),
+                AccountMeta::new_readonly(ctx.accounts.token_program.key(), false),
+            ],
+            data: (
+                crate::portal::Instruction::TransferNative,
+                TransferNativeData {
+                    nonce: ctx.accounts.config.nonce,
+                    amount,
+                    fee,
+                    target_address,
+                    target_chain,
+                },
+            )
+                .try_to_vec()?,
+        };
+
+        // Accounts
+        let transfer_accs = vec![
+            ctx.accounts.zebec_eoa.to_account_info(),
+            ctx.accounts.portal_config.to_account_info(),
+            ctx.accounts.from.to_account_info(),
+            ctx.accounts.mint.to_account_info(),
+            ctx.accounts.portal_custody.to_account_info(),
+            ctx.accounts.portal_authority_signer.to_account_info(),
+            ctx.accounts.portal_custody_signer.to_account_info(),
             ctx.accounts.bridge_config.to_account_info(),
             ctx.accounts.portal_message.to_account_info(),
             ctx.accounts.portal_emitter.to_account_info(),
@@ -1384,3 +1488,4 @@ fn process_direct_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Contex
     transaction_data.token_mint = Pubkey::new(&token_mint[..]);
     transaction_data.amount = amount;
 }
+ 

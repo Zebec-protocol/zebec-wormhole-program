@@ -204,6 +204,169 @@ pub struct CETransaction<'info> {
     )]
     pub pda_signer: UncheckedAccount<'info>,
 }
+
+#[derive(Accounts)]
+#[instruction( 
+    pid: Pubkey,
+    accs: Vec<TransactionAccount>,
+    data: Vec<u8>,
+    current_count: u8,
+    chain_id: Vec<u8>,
+    sender: Vec<u8>,
+)]
+pub struct CENativeTransferTransaction<'info> {
+    #[account(zero, signer)]
+    pub transaction: Box<Account<'info, Transaction>>,
+    // One of the owners. Checked in the handler.
+    #[account(mut)]
+    pub zebec_eoa: Signer<'info>,
+
+   #[account(
+        mut,
+        seeds = [
+            b"data_store".as_ref(),
+            &sender, 
+            current_count.to_string().as_bytes()
+        ],
+        bump
+    )]
+    /// CHECK: pda_signer is a PDA program signer. Data is never read or written to
+    pub data_storage: Account<'info, TransactionData>,
+
+    #[account(
+        mut,
+        constraint = data_storage.sender == sender,
+        seeds = [
+            b"txn_count".as_ref(),
+            &sender,
+        ],
+        bump
+    )]
+    pub txn_count: Account<'info, Count>,
+
+    ///CHECK: pda seeds checked
+    #[account(
+        mut,
+        seeds = [
+            &sender,
+            &chain_id
+        ],
+        bump
+    )]
+    pub pda_signer: UncheckedAccount<'info>,
+
+    //Native Transfer
+    #[account(
+        mut,
+        seeds = [b"config"],
+        bump,
+    )]
+    pub config: Account<'info, Config>,
+
+    //from_owner = pda_signer
+
+    #[account(
+        mut,
+        seeds = [b"config"],
+        seeds::program = portal_bridge_program.key(),
+        bump,
+    )]
+    /// CHECK: portal config
+    pub portal_config: AccountInfo<'info>,
+
+        #[account(
+        mut,
+        constraint = from.owner == pda_signer.key(),
+        constraint = from.mint == mint.key(),
+    )]
+    pub from: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    /// CHECK: No need of data
+    pub mint: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [mint.key().as_ref()],
+        seeds::program = portal_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: portal custody
+    pub portal_custody: AccountInfo<'info>,
+
+    #[account(
+        seeds = [b"authority_signer"],
+        seeds::program = portal_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: portal authority signer
+    pub portal_authority_signer: AccountInfo<'info>,
+
+    #[account(
+        seeds = [b"custody_signer"],
+        seeds::program = portal_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: portal custody signer
+    pub portal_custody_signer: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"Bridge"],
+        seeds::program = core_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: bridge config
+    pub bridge_config: AccountInfo<'info>,
+    
+    #[account(
+        mut,
+        signer
+    )]
+    /// CHECK: portal message
+    pub portal_message: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"emitter"],
+        seeds::program = portal_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: portal emitter
+    pub portal_emitter: AccountInfo<'info>,
+    
+    #[account(
+        mut,
+        seeds = [b"Sequence", portal_emitter.key().as_ref()],
+        seeds::program = core_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: portal sequence
+    pub portal_sequence: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"fee_collector"],
+        seeds::program = core_bridge_program.key(),
+        bump
+    )]
+    /// CHECK: bridge fee collector
+    pub bridge_fee_collector: AccountInfo<'info>,
+
+    pub clock: Sysvar<'info, Clock>,
+
+    pub rent: Sysvar<'info, Rent>,
+
+    pub system_program: Program<'info, System>,
+
+    pub portal_bridge_program: Program<'info, TokenPortalBridge>,
+
+    pub core_bridge_program: Program<'info, WormholeCoreBridge>,
+
+    pub token_program: Program<'info, Token>
+
+}
+
 #[derive(Accounts)]
 #[instruction( 
     pid: Pubkey,
