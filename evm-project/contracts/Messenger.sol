@@ -524,7 +524,7 @@ contract Messenger is Encoder {
         uint16 chainId,
         bytes32 applicationAddr
     ) public {
-        // require(msg.sender == owner, "Only owner can register new chains!");
+        require(msg.sender == owner, "Only owner can register new chains!");
         _applicationContracts[chainId] = applicationAddr;
     }
 
