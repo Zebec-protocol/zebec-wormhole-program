@@ -850,73 +850,43 @@ pub mod solana_project {
 
     //create and execute direct transfer
     pub fn transaction_direct_transfer(
-        ctx: Context<CENativeTransferTransaction>,
-        pid: Pubkey,
-        accs: Vec<TransactionAccount>,
-        data: Vec<u8>,
-        current_count: u8,
-        chain_id: Vec<u8>,
+        ctx: Context<DirectTransferNative>,
         sender: Vec<u8>,
-
+        chain_id: Vec<u8>,
+        current_count: u8,
         target_chain: u16,
         fee: u64,
     ) -> Result<()> {
-
         let count_stored = ctx.accounts.txn_count.count;
         require!(
             count_stored == current_count,
             MessengerError::InvalidDataProvided
         );
 
-        //check Mint passed
-        let mint_pubkey_passed: Pubkey = accs[6].pubkey;
         require!(
-            mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
+            ctx.accounts.data_storage.token_mint == ctx.accounts.mint.key(),
             MessengerError::InvalidDataProvided
         );
 
         //check sender
-        let pda_sender_passed: Pubkey = accs[0].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
         require!(sender == sender_stored, MessengerError::InvalidDataProvided);
 
         //check receiver
-        let pda_receiver_passed: Pubkey = accs[1].pubkey;
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
 
         //check pdaSender
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
-        let sender_derived_pubkey: (Pubkey, u8) =
+        let (sender_derived_pubkey, _): (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], &ctx.program_id);
         require!(
-            pda_sender_passed == sender_derived_pubkey.0,
+            ctx.accounts.pda_signer.key() == sender_derived_pubkey,
             MessengerError::InvalidPDASigner
         );
 
-        //check pdaReceiver
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
-        let receiver_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
-            &[&receiver_stored[..], &chain_id_seed[..]],
-            &ctx.program_id,
-        );
-        require!(
-            pda_receiver_passed == receiver_derived_pubkey.0,
-            MessengerError::InvalidDataProvided
-        );
-
-        //check data params passed
-        let data: &[u8] = data.as_slice();
-        let data_slice = &data[8..];
-        let decode_data = TokenAmount::try_from_slice(data_slice)?;
-        require!(
-            decode_data.amount == ctx.accounts.data_storage.amount,
-            MessengerError::InvalidDataProvided
-        );
-
         msg!("Transaction Direct Transfer");
-        
+
         transfer_native(ctx, sender, chain_id, target_chain, fee, receiver_stored)
     }
 
@@ -968,7 +938,10 @@ pub mod solana_project {
         fee: u64,
     ) -> Result<()> {
         //Check EOA
-        require!(ctx.accounts.config.owner == ctx.accounts.payer.key(),  MessengerError::InvalidCaller);
+        require!(
+            ctx.accounts.config.owner == ctx.accounts.payer.key(),
+            MessengerError::InvalidCaller
+        );
 
         let bump = ctx.bumps.get("from_owner").unwrap().to_le_bytes();
 
@@ -1055,24 +1028,26 @@ pub mod solana_project {
         Ok(())
     }
 
-    //transfer 
+    //transfer
     pub fn transfer_native(
-        ctx: Context<CENativeTransferTransaction>,
+        ctx: Context<DirectTransferNative>,
         sender: Vec<u8>,
         sender_chain: Vec<u8>,
         target_chain: u16,
         fee: u64,
 
-        receiver: Vec<u8>
-    ) -> Result<()>{
+        receiver: Vec<u8>,
+    ) -> Result<()> {
         let amount = ctx.accounts.data_storage.amount;
         //Check EOA
-        require!(ctx.accounts.config.owner == ctx.accounts.zebec_eoa.key(),  MessengerError::InvalidCaller);
+        require!(
+            ctx.accounts.config.owner == ctx.accounts.zebec_eoa.key(),
+            MessengerError::InvalidCaller
+        );
 
         let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
 
         let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain, &bump]];
-
 
         let approve_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
@@ -1179,7 +1154,6 @@ fn get_u16(data_bytes: Vec<u8>) -> u64 {
     return u64::from_be_bytes(data_u8);
 }
 
-
 fn get_u256(data_bytes: Vec<u8>) -> U256 {
     let data_u8 = <[u8; 32]>::try_from(data_bytes).unwrap();
     return U256::from_big_endian(&data_u8);
@@ -1209,7 +1183,7 @@ pub fn serialize_vaa(vaa: &MessageData) -> Vec<u8> {
 
 fn process_deposit(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
     let transaction_data = &mut ctx.accounts.data_storage;
-    
+
     let amount = get_u64(encoded_str[1..9].to_vec());
     let _to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let senderbytes = encoded_str[41..73].to_vec();
@@ -1235,7 +1209,7 @@ fn process_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMs
 
     transaction_data.start_time = start_time;
     transaction_data.end_time = end_time;
-    
+
     transaction_data.can_update = can_update == 1;
     transaction_data.can_cancel = can_cancel == 1;
 
@@ -1289,7 +1263,7 @@ fn process_withdraw_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Contex
     let withdrawer_wallet_bytes = encoded_str[33..65].to_vec();
     let token_mint = encoded_str[65..97].to_vec();
     let depositor_wallet_bytes = encoded_str[97..129].to_vec();
-    let data_account =  encoded_str[129..161].to_vec();
+    let data_account = encoded_str[129..161].to_vec();
 
     transaction_data.sender = depositor_wallet_bytes;
     transaction_data.receiver = withdrawer_wallet_bytes;
@@ -1358,4 +1332,3 @@ fn process_direct_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Contex
     transaction_data.token_mint = Pubkey::new(&token_mint[..]);
     transaction_data.amount = amount;
 }
- 

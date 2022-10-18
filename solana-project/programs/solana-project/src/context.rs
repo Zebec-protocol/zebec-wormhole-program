@@ -207,16 +207,11 @@ pub struct CETransaction<'info> {
 
 #[derive(Accounts)]
 #[instruction( 
-    pid: Pubkey,
-    accs: Vec<TransactionAccount>,
-    data: Vec<u8>,
-    current_count: u8,
-    chain_id: Vec<u8>,
     sender: Vec<u8>,
+    chain_id: Vec<u8>,
+    current_count: u8,
 )]
-pub struct CENativeTransferTransaction<'info> {
-    #[account(zero, signer)]
-    pub transaction: Box<Account<'info, Transaction>>,
+pub struct DirectTransferNative<'info> {
     // One of the owners. Checked in the handler.
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
