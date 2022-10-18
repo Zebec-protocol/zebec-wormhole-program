@@ -7,6 +7,7 @@ use anchor_lang::solana_program::system_instruction::transfer;
 use anchor_lang::solana_program;
 use anchor_spl::token::{approve, Approve};
 
+use primitive_types::U256;
 use sha3::Digest;
 
 use byteorder::{BigEndian, WriteBytesExt};
@@ -29,7 +30,7 @@ use wormhole::*;
 
 use std::ops::Deref;
 
-declare_id!("2gpJHHex7rxaxbe6sx9YArSzVFxztqtcGEKaukVAW6WV");
+declare_id!("F56A1FPDGsNUrqHNjmHZ36txyDTY8VYA7UEWV4SwxQAF");
 
 #[program]
 pub mod solana_project {
@@ -991,110 +992,11 @@ pub mod solana_project {
         Ok(())
     }
 
-    /* 
-    pub fn transfer_native(
-        ctx: Context<TransferNative>,
-        sender: Vec<u8>,
-        sender_chain: Vec<u8>,
-        target_chain: u16,
-        amount: u64,
-        fee: u64,
-    ) -> Result<()> {
-        //Check EOA
-        require!(ctx.accounts.config.owner == ctx.accounts.payer.key(),  MessengerError::InvalidCaller);
-
-        let bump = ctx.bumps.get("from_owner").unwrap().to_le_bytes();
-
-        let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain, &bump]];
-
-        let approve_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            Approve {
-                to: ctx.accounts.from.to_account_info(),
-                delegate: ctx.accounts.portal_authority_signer.to_account_info(),
-                authority: ctx.accounts.from_owner.to_account_info(),
-            },
-            signer_seeds,
-        );
-
-        // Delgate transfer authority to Token Bridge for the tokens
-        approve(approve_ctx, amount)?;
-
-        let target_address: [u8; 32] = sender.as_slice().try_into().unwrap();
-        // Instruction
-        let transfer_ix = Instruction {
-            program_id: Pubkey::from_str(TOKEN_BRIDGE_ADDRESS).unwrap(),
-            accounts: vec![
-                AccountMeta::new(ctx.accounts.payer.key(), true),
-                AccountMeta::new_readonly(ctx.accounts.portal_config.key(), false),
-                AccountMeta::new(ctx.accounts.from.key(), false),
-                AccountMeta::new(ctx.accounts.mint.key(), false),
-                AccountMeta::new(ctx.accounts.portal_custody.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.portal_authority_signer.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.portal_custody_signer.key(), false),
-                AccountMeta::new(ctx.accounts.bridge_config.key(), false),
-                AccountMeta::new(ctx.accounts.portal_message.key(), true),
-                AccountMeta::new_readonly(ctx.accounts.portal_emitter.key(), false),
-                AccountMeta::new(ctx.accounts.portal_sequence.key(), false),
-                AccountMeta::new(ctx.accounts.bridge_fee_collector.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.clock.key(), false),
-                // Dependencies
-                AccountMeta::new_readonly(ctx.accounts.rent.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
-                // Program
-                AccountMeta::new_readonly(ctx.accounts.core_bridge_program.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.token_program.key(), false),
-            ],
-            data: (
-                crate::portal::Instruction::TransferNative,
-                TransferNativeData {
-                    nonce: ctx.accounts.config.nonce,
-                    amount,
-                    fee,
-                    target_address,
-                    target_chain,
-                },
-            )
-                .try_to_vec()?,
-        };
-
-        // Accounts
-        let transfer_accs = vec![
-            ctx.accounts.payer.to_account_info(),
-            ctx.accounts.portal_config.to_account_info(),
-            ctx.accounts.from.to_account_info(),
-            ctx.accounts.mint.to_account_info(),
-            ctx.accounts.portal_custody.to_account_info(),
-            ctx.accounts.portal_authority_signer.to_account_info(),
-            ctx.accounts.portal_custody_signer.to_account_info(),
-            ctx.accounts.bridge_config.to_account_info(),
-            ctx.accounts.portal_message.to_account_info(),
-            ctx.accounts.portal_emitter.to_account_info(),
-            ctx.accounts.portal_sequence.to_account_info(),
-            ctx.accounts.bridge_fee_collector.to_account_info(),
-            ctx.accounts.clock.to_account_info(),
-            // Dependencies
-            ctx.accounts.rent.to_account_info(),
-            ctx.accounts.system_program.to_account_info(),
-            // Program
-            ctx.accounts.core_bridge_program.to_account_info(),
-            ctx.accounts.token_program.to_account_info(),
-        ];
-
-        invoke_signed(&transfer_ix, &transfer_accs, signer_seeds)?;
-
-        ctx.accounts.config.nonce += 1;
-
-        Ok(())
-    }
-    */
-
     pub fn transfer_wrapped(
         ctx: Context<TransferWrapped>,
         sender: Vec<u8>,
         sender_chain: Vec<u8>,
         target_chain: u16,
-        token_address: Vec<u8>,
         amount: u64,
         fee: u64,
     ) -> Result<()> {
@@ -1308,6 +1210,12 @@ fn get_u16(data_bytes: Vec<u8>) -> u64 {
     return u64::from_be_bytes(data_u8);
 }
 
+
+fn get_u256(data_bytes: Vec<u8>) -> U256 {
+    let data_u8 = <[u8; 32]>::try_from(data_bytes).unwrap();
+    return U256::from_big_endian(&data_u8);
+}
+
 fn get_u8(data_bytes: Vec<u8>) -> u64 {
     let prefix_bytes = vec![0; 7];
     let joined_bytes = [prefix_bytes, data_bytes].concat();
@@ -1332,10 +1240,11 @@ pub fn serialize_vaa(vaa: &MessageData) -> Vec<u8> {
 
 fn process_deposit(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
     let transaction_data = &mut ctx.accounts.data_storage;
+    
     let amount = get_u64(encoded_str[1..9].to_vec());
-    let _to_chain_id = get_u16(encoded_str[9..11].to_vec());
-    let senderbytes = encoded_str[11..43].to_vec();
-    let token_mint_bytes = &encoded_str[43..75].to_vec();
+    let _to_chain_id = get_u256(encoded_str[9..41].to_vec());
+    let senderbytes = encoded_str[41..73].to_vec();
+    let token_mint_bytes = &encoded_str[73..105].to_vec();
 
     transaction_data.amount = amount;
     transaction_data.sender = senderbytes;
@@ -1348,27 +1257,19 @@ fn process_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMs
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
     let amount = get_u64(encoded_str[17..25].to_vec());
-    let _to_chain_id = get_u16(encoded_str[25..27].to_vec());
-    let senderwallet_bytes = encoded_str[27..59].to_vec();
-    let receiver_wallet_bytes = encoded_str[59..91].to_vec();
-    let can_update = get_u64(encoded_str[91..99].to_vec());
-    let can_cancel = get_u64(encoded_str[99..107].to_vec());
-    let token_mint_bytes = &encoded_str[107..139].to_vec();
+    let _to_chain_id = get_u16(encoded_str[25..57].to_vec());
+    let senderwallet_bytes = encoded_str[57..89].to_vec();
+    let receiver_wallet_bytes = encoded_str[89..121].to_vec();
+    let can_update = get_u64(encoded_str[121..129].to_vec());
+    let can_cancel = get_u64(encoded_str[129..137].to_vec());
+    let token_mint_bytes = &encoded_str[137..169].to_vec();
 
     transaction_data.start_time = start_time;
     transaction_data.end_time = end_time;
-    if can_update == 1 {
-        transaction_data.can_update = true;
-    }
-    if can_update == 0 {
-        transaction_data.can_update = false;
-    }
-    if can_cancel == 1 {
-        transaction_data.can_cancel = true;
-    }
-    if can_cancel == 0 {
-        transaction_data.can_cancel = false;
-    }
+    
+    transaction_data.can_update = can_update == 1;
+    transaction_data.can_cancel = can_cancel == 1;
+
     transaction_data.amount = amount;
     transaction_data.sender = senderwallet_bytes;
     transaction_data.receiver = receiver_wallet_bytes;
@@ -1381,11 +1282,11 @@ fn process_update_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
     let amount = get_u64(encoded_str[17..25].to_vec());
-    let _to_chain_id = get_u16(encoded_str[25..27].to_vec());
-    let senderwallet_bytes = encoded_str[27..59].to_vec();
-    let receiver_wallet_bytes = encoded_str[59..91].to_vec();
-    let token_mint = &encoded_str[91..123].to_vec();
-    let data_account = &encoded_str[123..155].to_vec();
+    let _to_chain_id = get_u256(encoded_str[25..57].to_vec());
+    let senderwallet_bytes = encoded_str[57..89].to_vec();
+    let receiver_wallet_bytes = encoded_str[89..121].to_vec();
+    let token_mint = &encoded_str[121..153].to_vec();
+    let data_account = &encoded_str[153..185].to_vec();
 
     transaction_data.start_time = start_time;
     transaction_data.end_time = end_time;
@@ -1399,11 +1300,11 @@ fn process_update_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<
 
 fn process_pause(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
     let transaction_data = &mut ctx.accounts.data_storage;
-    let _to_chain_id = get_u16(encoded_str[1..3].to_vec());
-    let depositor_wallet_bytes = encoded_str[3..35].to_vec();
-    let token_mint = encoded_str[35..67].to_vec();
-    let receiver_wallet_bytes = encoded_str[67..99].to_vec();
-    let data_account = encoded_str[99..131].to_vec();
+    let _to_chain_id = get_u16(encoded_str[1..33].to_vec());
+    let depositor_wallet_bytes = encoded_str[33..65].to_vec();
+    let token_mint = encoded_str[65..97].to_vec();
+    let receiver_wallet_bytes = encoded_str[97..129].to_vec();
+    let data_account = encoded_str[129..161].to_vec();
 
     transaction_data.sender = depositor_wallet_bytes;
     transaction_data.receiver = receiver_wallet_bytes;
@@ -1415,11 +1316,11 @@ fn process_pause(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg
 //receiver will withdraw streamed tokens (receiver == withdrawer)
 fn process_withdraw_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
     let transaction_data = &mut ctx.accounts.data_storage;
-    let _to_chain_id = get_u16(encoded_str[1..3].to_vec());
-    let withdrawer_wallet_bytes = encoded_str[3..35].to_vec();
-    let token_mint = encoded_str[35..67].to_vec();
-    let depositor_wallet_bytes = encoded_str[67..99].to_vec();
-    let data_account = encoded_str[99..131].to_vec();
+    let _to_chain_id = get_u16(encoded_str[1..33].to_vec());
+    let withdrawer_wallet_bytes = encoded_str[33..65].to_vec();
+    let token_mint = encoded_str[65..97].to_vec();
+    let depositor_wallet_bytes = encoded_str[97..129].to_vec();
+    let data_account =  encoded_str[129..161].to_vec();
 
     transaction_data.sender = depositor_wallet_bytes;
     transaction_data.receiver = withdrawer_wallet_bytes;
@@ -1430,11 +1331,11 @@ fn process_withdraw_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Contex
 
 fn process_cancel_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
     let transaction_data = &mut ctx.accounts.data_storage;
-    let _to_chain_id = get_u16(encoded_str[1..3].to_vec());
-    let depositor_wallet_bytes = encoded_str[3..35].to_vec();
-    let token_mint = encoded_str[35..67].to_vec();
-    let receiver_wallet_bytes = encoded_str[67..99].to_vec();
-    let data_account = encoded_str[99..131].to_vec();
+    let _to_chain_id = get_u16(encoded_str[1..33].to_vec());
+    let depositor_wallet_bytes = encoded_str[33..65].to_vec();
+    let token_mint = encoded_str[65..97].to_vec();
+    let receiver_wallet_bytes = encoded_str[97..129].to_vec();
+    let data_account = encoded_str[129..161].to_vec();
 
     transaction_data.sender = depositor_wallet_bytes;
     transaction_data.receiver = receiver_wallet_bytes;
@@ -1447,9 +1348,9 @@ fn process_cancel_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<
 fn process_withdraw(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
     let transaction_data = &mut ctx.accounts.data_storage;
     let amount = get_u64(encoded_str[1..9].to_vec());
-    let _to_chain_id = get_u16(encoded_str[9..11].to_vec());
-    let withdrawer_wallet_bytes = encoded_str[11..43].to_vec();
-    let token_mint = encoded_str[43..75].to_vec();
+    let _to_chain_id = get_u256(encoded_str[9..41].to_vec());
+    let withdrawer_wallet_bytes = encoded_str[41..73].to_vec();
+    let token_mint = encoded_str[73..105].to_vec();
 
     transaction_data.sender = withdrawer_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id as u64;
@@ -1461,10 +1362,10 @@ fn process_instant_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Conte
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
-    let _to_chain_id = get_u16(encoded_str[9..11].to_vec());
-    let senderwallet_bytes = encoded_str[11..43].to_vec();
-    let token_mint = encoded_str[43..75].to_vec();
-    let withdrawer_wallet_bytes = encoded_str[75..107].to_vec();
+    let _to_chain_id = get_u256(encoded_str[9..41].to_vec());
+    let senderwallet_bytes = encoded_str[41..73].to_vec();
+    let token_mint = encoded_str[73..105].to_vec();
+    let withdrawer_wallet_bytes = encoded_str[105..137].to_vec();
 
     transaction_data.sender = senderwallet_bytes;
     transaction_data.receiver = withdrawer_wallet_bytes;
@@ -1477,10 +1378,10 @@ fn process_direct_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Contex
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
-    let _to_chain_id = get_u16(encoded_str[9..11].to_vec());
-    let senderwallet_bytes = encoded_str[11..43].to_vec();
-    let token_mint = encoded_str[43..75].to_vec();
-    let withdrawer_wallet_bytes = encoded_str[75..107].to_vec();
+    let _to_chain_id = get_u256(encoded_str[9..41].to_vec());
+    let senderwallet_bytes = encoded_str[41..73].to_vec();
+    let token_mint = encoded_str[73..105].to_vec();
+    let withdrawer_wallet_bytes = encoded_str[105..137].to_vec();
 
     transaction_data.sender = senderwallet_bytes;
     transaction_data.receiver = withdrawer_wallet_bytes;

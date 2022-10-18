@@ -17,7 +17,10 @@ async function main() {
     // We get the contract to deploy
 
     const Messenger = await ethers.getContractFactory("Messenger");
-    const messenger = await Messenger.deploy();
+    //BSC
+    const messenger = await Messenger.deploy("0x68605AD7b15c732a30b1BbC62BE8F2A509D74b4D", "100","0xae13d989dac2f0debff460ac112a837c89baa7cd");
+    //ETH
+    // const messenger = await Messenger.deploy("0x706abc4E45D419950511e474C7B9Ed348A4a716c", "100","0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6");
     await messenger.deployed();
     console.log("Messenger deployed to address: ", messenger.address);
     fs.writeFileSync("eth-address.txt", messenger.address);

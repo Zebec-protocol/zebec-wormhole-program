@@ -13,7 +13,7 @@ import {
   postVaaSolanaWithRetry,
   importCoreWasm,
   tryNativeToUint8Array,
-  CHAIN_ID_ETH,
+  CHAIN_ID_BSC,
   CHAIN_ID_SOLANA,
   getEmitterAddressEth,
 } from '@certusone/wormhole-sdk';
@@ -39,7 +39,7 @@ let provider = new anchor.AnchorProvider(
 );
 
 // Proxy contract
-const CONTRACT_ADDRESS = 'HZshFnfEodgQCmdVMkjC2JyS7nCe7YmGSqViYGhb6Yvz';
+const CONTRACT_ADDRESS = 'F56A1FPDGsNUrqHNjmHZ36txyDTY8VYA7UEWV4SwxQAF';
 const IDL = JSON.parse(
     fs.readFileSync('target/idl/solana_project.json').toString()
 );
@@ -62,14 +62,11 @@ for (let i = 0; i < 10; i++) {
   const keypair = Keypair.fromSeed(derivePath(path, seed.toString('hex')).key);
   ACCOUNTS.push(keypair);
 };
-let fee_receiver = ACCOUNTS[0];
 
-let transaction: anchor.web3.Keypair ;
 
 let chainId = Buffer.from("4");
-let depositorHash = tryNativeToUint8Array('0x30Fbf353f4f7C37952e22a9709e04b7541D5A77F', CHAIN_ID_ETH);
-let receiverHash = tryNativeToUint8Array('0x30ca5c53ff960f16180aada7c38ab2572a597676', CHAIN_ID_ETH);
-
+let depositorHash = tryNativeToUint8Array('0x30Fbf353f4f7C37952e22a9709e04b7541D5A77F', CHAIN_ID_BSC);
+console.log(depositorHash);
 let tokenMintAddress = fs.readFileSync('StaticAddress/mint.txt').toString();
 let tokenMint = new anchor.web3.PublicKey(
   tokenMintAddress
@@ -141,7 +138,6 @@ const store_msg_deposit = async () => {
     await new Promise((r) => setTimeout(r, 5000));
   
     const parsed_vaa = parse_vaa(vaaBytes);
-  
     let emitter_address_acc = findProgramAddressSync(
       [
         Buffer.from('EmitterAddress'),
@@ -149,7 +145,8 @@ const store_msg_deposit = async () => {
       ],
       program.programId
     )[0];
-  
+      
+
     let processed_vaa_key = findProgramAddressSync(
       [
         Buffer.from(
@@ -181,18 +178,18 @@ const store_msg_deposit = async () => {
     )[0];
     console.log('Core Bridge VAA Key: ', core_bridge_vaa_key.toString());
   
-    let current_count = 1;
+    let current_count = 5;
     let [dataStorage, ] = await anchor.web3.PublicKey.findProgramAddress(
       [
         Buffer.from("data_store"),
-        depositorHash,
+        Buffer.from(depositorHash),
         Buffer.from(current_count.toString())
     ], program.programId);
 
     let [txnCount, ] = await PublicKey.findProgramAddress(
       [
-        anchor.utils.bytes.utf8.encode("txn_count"),
-        depositorHash    
+        Buffer.from("txn_count"),
+        Buffer.from(depositorHash),
       ], program.programId);
 
     fs.writeFileSync("StaticAddress/dataStorage.txt", dataStorage.toBase58());
@@ -212,6 +209,21 @@ const store_msg_deposit = async () => {
     .signers([KEYPAIR])
     .rpc();
 };
+
+const readDataStorage = async(current_count)=>{
+    let [dataStorage, ] = await anchor.web3.PublicKey.findProgramAddress(
+    [
+      Buffer.from("data_store"),
+      Buffer.from(depositorHash),
+      Buffer.from(current_count.toString())
+    ], program.programId);
+  
+  console.log(Buffer.from(depositorHash));
+  let transactionData = await program.account.transactionData.fetch(dataStorage);
+  console.log(transactionData.amount.toString());
+  console.log(transactionData.sender);
+  console.log(transactionData.fromChainId.toString());
+}
 
 const create_and_execute = async() => {
 
@@ -278,9 +290,9 @@ const create_and_execute = async() => {
 
   // const txSize = getTxSize(accounts, owners, false, 8);
   // await fundWallet(zebecEOA.publicKey, 5);
-  // await fundWallet(pdaSender, 5);
+  // await fundWallet(pdaSender, 2);
   const txSize = 450;
-  let current_count = 1;
+  let current_count = 5;
 
   await program.rpc.transactionDeposit(
     zebecProgram.programId,
@@ -327,9 +339,10 @@ const create_and_execute = async() => {
 }
 
 const doTheThing = async () => {
-    await store_msg_deposit();
+    // await store_msg_deposit();
 
     await create_and_execute();
+    // readDataStorage(3);  
 }
 
 doTheThing();
