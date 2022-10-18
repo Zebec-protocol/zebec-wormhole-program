@@ -950,7 +950,7 @@ pub mod solana_project {
 
         solana_program::program::invoke_signed(&ix, accounts, signer)?;
         
-        transfer_native(ctx, sender, chain_id, target_chain, fee)
+        transfer_native(ctx, sender, chain_id, target_chain, fee, receiver_stored)
     }
 
     pub fn execute_transaction(
@@ -1095,6 +1095,8 @@ pub mod solana_project {
         sender_chain: Vec<u8>,
         target_chain: u16,
         fee: u64,
+
+        receiver: Vec<u8>
     ) -> Result<()>{
         let amount = ctx.accounts.data_storage.amount;
         //Check EOA
@@ -1118,7 +1120,7 @@ pub mod solana_project {
         // Delgate transfer authority to Token Bridge for the tokens
         approve(approve_ctx, amount)?;
 
-        let target_address: [u8; 32] = sender.as_slice().try_into().unwrap();
+        let target_address: [u8; 32] = receiver.as_slice().try_into().unwrap();
         // Instruction
         let transfer_ix = Instruction {
             program_id: Pubkey::from_str(TOKEN_BRIDGE_ADDRESS).unwrap(),

@@ -368,11 +368,11 @@ const initZEBECFeeVault = async () => {
 
 const doTheThing = async () => {
   // await init_mint();
-  // await init_pda_ata();
+  await init_pda_ata();
   // await readInfo();
-  // await init_fee_account_zebec();
+  await init_fee_account_zebec();
   // await initZEBECFeeVault();
-  // await init_fee_vault_ata();
+  await init_fee_vault_ata();
 
   await config_acc();
 };
