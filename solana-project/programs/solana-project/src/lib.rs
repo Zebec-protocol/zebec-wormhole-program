@@ -861,12 +861,6 @@ pub mod solana_project {
         target_chain: u16,
         fee: u64,
     ) -> Result<()> {
-        //Build Transactions
-        let tx = &mut ctx.accounts.transaction;
-        tx.program_id = pid;
-        tx.accounts = accs.clone();
-        tx.did_execute = false;
-        tx.data = data.clone();
 
         let count_stored = ctx.accounts.txn_count.count;
         require!(
@@ -921,34 +915,7 @@ pub mod solana_project {
             MessengerError::InvalidDataProvided
         );
 
-        //execute txn
-        if ctx.accounts.transaction.did_execute {
-            return Err(MessengerError::AlreadyExecuted.into());
-        }
-        ctx.accounts.transaction.did_execute = true;
-
-        // Execute the transaction signed by the pdasender/pdareceiver.
-        let mut ix: Instruction = (*ctx.accounts.transaction).deref().into();
-        ix.accounts = ix
-            .accounts
-            .iter()
-            .map(|acc| {
-                let mut acc = acc.clone();
-                if &acc.pubkey == ctx.accounts.pda_signer.key {
-                    acc.is_signer = true;
-                }
-                acc
-            })
-            .collect();
-
-        let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
-        let seeds: &[&[_]] = &[&sender, &chain_id, bump.as_ref()];
-        let signer = &[&seeds[..]];
-        let accounts = ctx.remaining_accounts;
-
-        msg!("Transaction Execute");
-
-        solana_program::program::invoke_signed(&ix, accounts, signer)?;
+        msg!("Transaction Direct Transfer");
         
         transfer_native(ctx, sender, chain_id, target_chain, fee, receiver_stored)
     }

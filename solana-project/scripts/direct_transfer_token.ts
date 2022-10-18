@@ -15,7 +15,7 @@ import {
   getClaimAddressSolana,
   getEmitterAddressEth,
   tryNativeToUint8Array,
-  CHAIN_ID_ETH,
+  CHAIN_ID_BSC,
   CHAIN_ID_BSC,
 } from "@certusone/wormhole-sdk";
 import { findProgramAddressSync } from "@project-serum/anchor/dist/cjs/utils/pubkey";
@@ -78,11 +78,11 @@ let transaction: anchor.web3.Keypair;
 let chainIdHash = Buffer.from("4");
 let depositorHash = tryNativeToUint8Array(
   "0x30Fbf353f4f7C37952e22a9709e04b7541D5A77F",
-  CHAIN_ID_ETH
+  CHAIN_ID_BSC
 );
 let receiverHash = tryNativeToUint8Array(
   "0x30ca5c53ff960f16180aada7c38ab2572a597676",
-  CHAIN_ID_ETH
+  CHAIN_ID_BSC
 );
 let dataStorage;
 
@@ -409,6 +409,7 @@ const create_and_execute = async () => {
     Buffer.from(CHAIN_ID_BSC.toString()),
     CHAIN_ID_BSC,
     new anchor.BN("100"),
+    Buffer.from(receiverHash),
     {
       accounts: {
         transaction: transaction.publicKey,
