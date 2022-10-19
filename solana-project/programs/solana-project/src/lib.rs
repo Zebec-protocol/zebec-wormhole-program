@@ -848,8 +848,8 @@ pub mod solana_project {
         Ok(())
     }
 
-    //create and execute direct transfer
-    pub fn transaction_direct_transfer(
+    //create and execute direct transfer native
+    pub fn transaction_direct_transfer_native(
         ctx: Context<DirectTransferNative>,
         sender: Vec<u8>,
         chain_id: Vec<u8>,
@@ -885,9 +885,53 @@ pub mod solana_project {
             MessengerError::InvalidPDASigner
         );
 
-        msg!("Transaction Direct Transfer");
+        msg!("Transaction Direct Transfer Native");
 
         transfer_native(ctx, sender, chain_id, target_chain, fee, receiver_stored)
+    }
+
+    //create and execute direct transfer wrapped
+    pub fn transaction_direct_transfer_wrapped(
+        ctx: Context<DirectTransferWrapped>,
+        sender: Vec<u8>,
+        chain_id: Vec<u8>,
+        current_count: u8,
+        token_address: Vec<u8>,
+        target_chain: u16,
+
+        fee: u64,
+    ) -> Result<()>{
+         let count_stored = ctx.accounts.txn_count.count;
+        require!(
+            count_stored == current_count,
+            MessengerError::InvalidDataProvided
+        );
+
+        require!(
+            ctx.accounts.data_storage.token_mint == ctx.accounts.wrapped_mint.key(),
+            MessengerError::InvalidDataProvided
+        );
+
+        //check sender
+        let sender_stored = ctx.accounts.data_storage.sender.clone();
+        require!(sender == sender_stored, MessengerError::InvalidDataProvided);
+
+        //check receiver
+        let receiver_stored = ctx.accounts.data_storage.receiver.clone();
+
+        //check pdaSender
+        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
+        let chain_id_seed = chain_id_stored.as_bytes();
+        let (sender_derived_pubkey, _): (Pubkey, u8) =
+            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], &ctx.program_id);
+        require!(
+            ctx.accounts.pda_signer.key() == sender_derived_pubkey,
+            MessengerError::InvalidPDASigner
+        );
+
+        msg!("Transaction Direct Transfer Wrapped");
+
+        transfer_wrapped(ctx, sender, chain_id, target_chain,fee,  receiver_stored)
     }
 
     pub fn execute_transaction(
@@ -930,16 +974,19 @@ pub mod solana_project {
     }
 
     pub fn transfer_wrapped(
-        ctx: Context<TransferWrapped>,
+        ctx: Context<DirectTransferWrapped>,
         sender: Vec<u8>,
         sender_chain: Vec<u8>,
         target_chain: u16,
-        amount: u64,
+
         fee: u64,
+        receiver: Vec<u8>
     ) -> Result<()> {
+        let amount = ctx.accounts.data_storage.amount;
+
         //Check EOA
         require!(
-            ctx.accounts.config.owner == ctx.accounts.payer.key(),
+            ctx.accounts.config.owner == ctx.accounts.zebec_eoa.key(),
             MessengerError::InvalidCaller
         );
 
@@ -960,12 +1007,12 @@ pub mod solana_project {
         // Delgate transfer authority to Token Bridge for the tokens
         approve(approve_ctx, amount)?;
 
-        let target_address: [u8; 32] = sender.as_slice().try_into().unwrap();
+        let target_address: [u8; 32] = receiver.as_slice().try_into().unwrap();
         // Instruction
         let transfer_ix = Instruction {
             program_id: Pubkey::from_str(TOKEN_BRIDGE_ADDRESS).unwrap(),
             accounts: vec![
-                AccountMeta::new(ctx.accounts.payer.key(), true),
+                AccountMeta::new(ctx.accounts.zebec_eoa.key(), true),
                 AccountMeta::new_readonly(ctx.accounts.portal_config.key(), false),
                 AccountMeta::new(ctx.accounts.from.key(), false),
                 AccountMeta::new(ctx.accounts.from_owner.key(), true),
@@ -1000,7 +1047,7 @@ pub mod solana_project {
 
         // Accounts
         let transfer_accs = vec![
-            ctx.accounts.payer.to_account_info(),
+            ctx.accounts.zebec_eoa.to_account_info(),
             ctx.accounts.portal_config.to_account_info(),
             ctx.accounts.from.to_account_info(),
             ctx.accounts.from_owner.to_account_info(),
