@@ -75,7 +75,7 @@ let depositorHash = tryNativeToUint8Array(
   CHAIN_ID_BSC
 );
 let receiverHash = tryNativeToUint8Array(
-  "0x30ca5c53ff960f16180aada7c38ab2572a597676",
+  "0xD8BeCE69d19837947b8d5963E505aed51C6F53Fa",
   CHAIN_ID_BSC
 );
 let dataStorage;
@@ -132,6 +132,16 @@ const getTokenBalance = async (
   const data = Buffer.from(tokenAccountInfo.data);
   const accountInfo = spl.AccountLayout.decode(data);
   return accountInfo.amount;
+};
+
+const getCurrentCount = async () => {
+  let [txnCount, _] = await PublicKey.findProgramAddress(
+    [anchor.utils.bytes.utf8.encode("txn_count"), depositorHash],
+    program.programId
+  );
+  const current_counting = await program.account.count.fetch(txnCount);
+  console.log(current_counting.count);
+  return current_counting.count + 1;
 };
 
 const store_msg_direct_transfer = async () => {
@@ -196,7 +206,7 @@ const store_msg_direct_transfer = async () => {
   )[0];
   console.log("Core Bridge VAA Key: ", core_bridge_vaa_key.toString());
 
-  let current_count = 6;
+  let current_count = await getCurrentCount();
   let [dataStorage] = await anchor.web3.PublicKey.findProgramAddress(
     [
       Buffer.from("data_store"),
@@ -230,12 +240,12 @@ const store_msg_direct_transfer = async () => {
 };
 
 const direct_transfer_native = async () => {
-  let current_count = 6;
+  let current_count = await getCurrentCount();
   let [dataStorage] = await anchor.web3.PublicKey.findProgramAddress(
     [
       Buffer.from("data_store"),
       depositorHash,
-      Buffer.from(current_count.toString()),
+      Buffer.from((current_count - 1).toString()),
     ],
     program.programId
   );
@@ -256,8 +266,6 @@ const direct_transfer_native = async () => {
   //   txnCount,
   //   "confirmed"
   // );
-  const current_counting = await program.account.count.fetch(txnCount);
-  console.log(current_counting.count);
 
   // const tokenbalanceBefore = await getTokenBalance(pdaReceiverATA);
   const mint = tokenMint;
@@ -333,7 +341,7 @@ const direct_transfer_native = async () => {
     .transactionDirectTransfer(
       Buffer.from(depositorHash),
       Buffer.from(CHAIN_ID_BSC.toString()),
-      current_count,
+      current_count - 1,
       CHAIN_ID_BSC,
       new anchor.BN("10000")
     )
@@ -386,6 +394,9 @@ const direct_transfer_native = async () => {
 };
 
 const doTheThing = async () => {
+  const count = await getCurrentCount();
+  console.log("current_count", count);
+
   // await store_msg_direct_transfer();
 
   await direct_transfer_native();

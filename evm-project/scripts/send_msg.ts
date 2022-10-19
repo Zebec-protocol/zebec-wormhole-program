@@ -22,7 +22,7 @@ const messengerAddress = fs.readFileSync("eth-address.txt").toString();
 
 const startTime = 1;
 const endTime = 2;
-const amount = 3000;
+const amount = 5000000000;
 const receiver = "0xD8BeCE69d19837947b8d5963E505aed51C6F53Fa";
 
 let tokenMint = fs

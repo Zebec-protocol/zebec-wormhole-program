@@ -233,7 +233,7 @@ const init_pda_ata = async () => {
     CHAIN_ID_BSC
   );
   receiverHash = tryNativeToUint8Array(
-    "0x30ca5c53ff960f16180aada7c38ab2572a597676",
+    "0xD8BeCE69d19837947b8d5963E505aed51C6F53Fa",
     CHAIN_ID_BSC
   );
 
