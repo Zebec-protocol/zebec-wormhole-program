@@ -11,6 +11,7 @@ import {
   postVaaSolanaWithRetry,
   setDefaultWasm,
   tryNativeToUint8Array,
+  getBridgeFeeIx,
 } from "@certusone/wormhole-sdk";
 import * as anchor from "@project-serum/anchor";
 import NodeWallet from "@project-serum/anchor/dist/cjs/nodewallet";
@@ -23,6 +24,7 @@ import {
   SystemProgram,
   SYSVAR_CLOCK_PUBKEY,
   SYSVAR_RENT_PUBKEY,
+  Transaction,
 } from "@solana/web3.js";
 
 import { SolanaProject as Messenger } from "../target/types/solana_project";
@@ -250,7 +252,6 @@ const direct_transfer_native = async () => {
     program.programId
   );
 
-  const transaction = anchor.web3.Keypair.generate();
   // const countInfo = await provider.connection.getAccountInfo(
   //   txnCount,
   //   "confirmed"
@@ -316,6 +317,18 @@ const direct_transfer_native = async () => {
   console.log("portalSequence", portalSequence.toString());
   console.log("senderATA", from.toString());
 
+  const transaction = new Transaction();
+
+  setDefaultWasm("node");
+
+  const transferFeeIxn = await getBridgeFeeIx(
+    provider.connection,
+    SOLANA_CORE_BRIDGE_ADDRESS,
+    zebecEoa.toString()
+  );
+
+  console.log("transferFeeIxn", transferFeeIxn);
+
   const tx = await program.methods
     .transactionDirectTransfer(
       Buffer.from(depositorHash),
@@ -348,8 +361,28 @@ const direct_transfer_native = async () => {
       coreBridgeProgram: coreBridgeProgram,
       tokenProgram: spl.TOKEN_PROGRAM_ID,
     })
-    .signers([KEYPAIR, messageKeypair])
-    .rpc();
+    // .signers([KEYPAIR, messageKeypair])
+    .instruction();
+
+  transaction.add(transferFeeIxn, tx);
+  const { blockhash, lastValidBlockHeight } =
+    await provider.connection.getLatestBlockhash();
+
+  transaction.recentBlockhash = blockhash;
+  transaction.lastValidBlockHeight = lastValidBlockHeight;
+  transaction.feePayer = zebecEoa;
+  transaction.partialSign(messageKeypair);
+  await provider.wallet.signTransaction(transaction);
+
+  const signature = await provider.connection.sendRawTransaction(
+    transaction.serialize()
+  );
+
+  const confirmation = await provider.connection.confirmTransaction({
+    signature,
+    blockhash,
+    lastValidBlockHeight,
+  });
 };
 
 const doTheThing = async () => {
