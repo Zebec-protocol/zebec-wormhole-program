@@ -57,11 +57,25 @@ export async function sendMsg() {
     const sender = await signer.getAddress();
     console.log(tryNativeToUint8Array(sender, CHAIN_ID));
     console.log(sender);
+    // const tx = await (
+    //     await messenger.process_deposit_token(
+    //         BigNumber.from(amount),
+    //         tryNativeToUint8Array(sender, CHAIN_ID),
+    //         mintUint8,
+    //         BigNumber.from("10"),
+    //         {
+    //             gasLimit: BigNumber.from("10000000"),
+    //             value: BigNumber.from("100"),
+    //         }
+    //     )
+    // ).wait();
+
     const tx = await (
-        await messenger.process_deposit_token(
+        await messenger.process_direct_transfer(
             BigNumber.from(amount),
             tryNativeToUint8Array(sender, CHAIN_ID),
             mintUint8,
+            tryNativeToUint8Array(receiver, CHAIN_ID),
             BigNumber.from("10"),
             {
                 gasLimit: BigNumber.from("10000000"),

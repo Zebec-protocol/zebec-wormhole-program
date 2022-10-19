@@ -274,7 +274,7 @@ pub struct DirectTransferNative<'info> {
         constraint = from.owner == pda_signer.key(),
         constraint = from.mint == mint.key(),
     )]
-    pub from: Account<'info, TokenAccount>,
+    pub from: Box<Account<'info, TokenAccount>>,
 
     #[account(mut)]
     /// CHECK: No need of data
@@ -522,7 +522,7 @@ pub struct TransferNative<'info> {
         constraint = from.owner == from_owner.key(),
         constraint = from.mint == mint.key(),
     )]
-    pub from: Account<'info, TokenAccount>,
+    pub from: Box<Account<'info, TokenAccount>>,
 
     #[account(mut)]
     /// CHECK: No need of data
@@ -632,7 +632,7 @@ pub struct TransferWrapped<'info> {
         constraint = from.owner == from_owner.key(),
         constraint = from.mint == wrapped_mint.key(),
     )]
-    pub from: Account<'info, TokenAccount>,
+    pub from: Box<Account<'info, TokenAccount>>,
 
     #[account(
         mut,
