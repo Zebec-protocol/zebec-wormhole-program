@@ -42,7 +42,7 @@ let provider = new anchor.AnchorProvider(
 );
 
 // Proxy contract
-const CONTRACT_ADDRESS = 'ExoGSfFpysvXgA75oKaBf5i8cqn2DYBCf4mdi36jja5u';
+const CONTRACT_ADDRESS = 'F56A1FPDGsNUrqHNjmHZ36txyDTY8VYA7UEWV4SwxQAF';
 const IDL = JSON.parse(
     fs.readFileSync('target/idl/solana_project.json').toString()
 );

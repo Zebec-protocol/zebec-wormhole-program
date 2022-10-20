@@ -554,3 +554,4 @@ contract Messenger is Encoder {
         require(_sent, "Failed to send Ether");
     }
 }
+
