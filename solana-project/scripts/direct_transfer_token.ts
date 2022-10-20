@@ -338,7 +338,7 @@ const direct_transfer_native = async () => {
   console.log("transferFeeIxn", transferFeeIxn);
 
   const tx = await program.methods
-    .transactionDirectTransfer(
+    .transactionDirectTransferNative(
       Buffer.from(depositorHash),
       Buffer.from(CHAIN_ID_BSC.toString()),
       current_count - 1,
