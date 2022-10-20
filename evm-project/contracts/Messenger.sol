@@ -17,6 +17,9 @@ contract Messenger is Encoder {
     IWormhole public _wormhole;
     IWETH public _weth;
     uint256 public _wormhole_fee;
+
+    // SOLANA CHAIN ID AS SPECIFIED AS WORMHOLE CONTRACT (https://book.wormhole.com/reference/contracts.html)
+    uint256 SOLANA_CHAIN_ID = 1;
     
     mapping(uint16 => bytes32) public _applicationContracts;
 
@@ -528,8 +531,13 @@ contract Messenger is Encoder {
         _applicationContracts[chainId] = applicationAddr;
     }
 
-     function getChainId() internal view returns (uint256) {
-        return _wormhole.chainId();
+    function getChainId() internal view returns (uint256) {
+        return SOLANA_CHAIN_ID;
+    }
+
+    function changeSolanaWormholeId(uint256 _id) public {
+        require(msg.sender == owner, "Only owner can change wormhole id for Solana!");
+        SOLANA_CHAIN_ID = _id;
     }
 
     function changeAdmin(address _owner) public {
