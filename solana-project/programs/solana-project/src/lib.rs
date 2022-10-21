@@ -996,8 +996,8 @@ pub mod solana_project {
             ctx.accounts.config.owner == ctx.accounts.zebec_eoa.key(),
             MessengerError::InvalidCaller
         );
-
-        let bump = ctx.bumps.get("from_owner").unwrap().to_le_bytes();
+        msg!("updated");
+        let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
 
         let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain, &bump]];
 
@@ -1020,7 +1020,7 @@ pub mod solana_project {
             program_id: Pubkey::from_str(TOKEN_BRIDGE_ADDRESS).unwrap(),
             accounts: vec![
                 AccountMeta::new(ctx.accounts.zebec_eoa.key(), true),
-                AccountMeta::new_readonly(ctx.accounts.pda_signer.key(), false),
+                AccountMeta::new_readonly(ctx.accounts.portal_config.key(), false),
                 AccountMeta::new(ctx.accounts.from.key(), false),
                 AccountMeta::new_readonly(ctx.accounts.pda_signer.key(), true),
                 AccountMeta::new(ctx.accounts.wrapped_mint.key(), false),
