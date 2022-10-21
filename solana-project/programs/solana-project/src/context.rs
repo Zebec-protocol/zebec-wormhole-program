@@ -16,7 +16,7 @@ use hex::decode;
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(
-        init,
+        init_if_needed,
         seeds=[b"config".as_ref()],
         payer=owner,
         bump,
@@ -39,7 +39,7 @@ pub struct RegisterChain<'info> {
     )]
     pub config: Account<'info, Config>,
     #[account(
-        init,
+        init_if_needed,
         seeds=[b"EmitterAddress".as_ref(), chain_id.to_be_bytes().as_ref()],
         payer=owner,
         bump,
@@ -365,11 +365,10 @@ pub struct DirectTransferNative<'info> {
 #[derive(Accounts)]
 #[instruction( 
     sender: Vec<u8>,
-    chain_id: Vec<u8>,
-    current_count: u8,
-
+    sender_chain: Vec<u8>,
     token_address: Vec<u8>,
-    target_chain: u16,
+    token_chain: u16,
+    current_count: u8
 )]
 pub struct DirectTransferWrapped<'info> {
     // One of the owners. Checked in the handler.
@@ -404,7 +403,7 @@ pub struct DirectTransferWrapped<'info> {
         mut,
         seeds = [
             &sender,
-            &chain_id
+            &sender_chain
         ],
         bump
     )]
@@ -420,18 +419,10 @@ pub struct DirectTransferWrapped<'info> {
         
     #[account(
         mut,
-        constraint = from.owner == from_owner.key(),
+        constraint = from.owner == pda_signer.key(),
         constraint = from.mint == wrapped_mint.key(),
     )]
     pub from: Box<Account<'info, TokenAccount>>,
-
-    #[account(
-        mut,
-        seeds = [&sender, &chain_id],
-        bump
-    )]
-    /// CHECK: xchain user
-    pub from_owner: AccountInfo<'info>,
 
     #[account(
         mut,
@@ -446,7 +437,7 @@ pub struct DirectTransferWrapped<'info> {
         mut,
         seeds = [
             b"wrapped",
-            target_chain.to_le_bytes().as_ref(),
+            token_chain.to_be_bytes().as_ref(),
             token_address.as_ref()
         ],
         seeds::program = portal_bridge_program.key(),

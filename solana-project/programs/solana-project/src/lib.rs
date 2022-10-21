@@ -30,7 +30,7 @@ use wormhole::*;
 
 use std::ops::Deref;
 
-declare_id!("F56A1FPDGsNUrqHNjmHZ36txyDTY8VYA7UEWV4SwxQAF");
+declare_id!("GtyAQgcYTGso352pgR7T8tfESe3TGE5eUkEj9dYyrypS");
 
 #[program]
 pub mod solana_project {
@@ -894,14 +894,15 @@ pub mod solana_project {
     pub fn transaction_direct_transfer_wrapped(
         ctx: Context<DirectTransferWrapped>,
         sender: Vec<u8>,
-        chain_id: Vec<u8>,
-        current_count: u8,
+        sender_chain: Vec<u8>,
         token_address: Vec<u8>,
+        token_chain: u16,
+        current_count: u8,
         target_chain: u16,
-
+        amount: u64,
         fee: u64,
-    ) -> Result<()>{
-         let count_stored = ctx.accounts.txn_count.count;
+    ) -> Result<()> {
+        let count_stored = ctx.accounts.txn_count.count;
         require!(
             count_stored == current_count,
             MessengerError::InvalidDataProvided
@@ -931,7 +932,14 @@ pub mod solana_project {
 
         msg!("Transaction Direct Transfer Wrapped");
 
-        transfer_wrapped(ctx, sender, chain_id, target_chain,fee,  receiver_stored)
+        transfer_wrapped(
+            ctx,
+            sender,
+            sender_chain,
+            target_chain,
+            fee,
+            receiver_stored,
+        )
     }
 
     pub fn execute_transaction(
@@ -978,9 +986,8 @@ pub mod solana_project {
         sender: Vec<u8>,
         sender_chain: Vec<u8>,
         target_chain: u16,
-
         fee: u64,
-        receiver: Vec<u8>
+        receiver: Vec<u8>,
     ) -> Result<()> {
         let amount = ctx.accounts.data_storage.amount;
 
@@ -999,7 +1006,7 @@ pub mod solana_project {
             Approve {
                 to: ctx.accounts.from.to_account_info(),
                 delegate: ctx.accounts.portal_authority_signer.to_account_info(),
-                authority: ctx.accounts.from_owner.to_account_info(),
+                authority: ctx.accounts.pda_signer.to_account_info(),
             },
             signer_seeds,
         );
@@ -1013,11 +1020,11 @@ pub mod solana_project {
             program_id: Pubkey::from_str(TOKEN_BRIDGE_ADDRESS).unwrap(),
             accounts: vec![
                 AccountMeta::new(ctx.accounts.zebec_eoa.key(), true),
-                AccountMeta::new_readonly(ctx.accounts.portal_config.key(), false),
+                AccountMeta::new_readonly(ctx.accounts.pda_signer.key(), false),
                 AccountMeta::new(ctx.accounts.from.key(), false),
-                AccountMeta::new(ctx.accounts.from_owner.key(), true),
+                AccountMeta::new_readonly(ctx.accounts.pda_signer.key(), true),
                 AccountMeta::new(ctx.accounts.wrapped_mint.key(), false),
-                AccountMeta::new(ctx.accounts.wrapped_meta.key(), false),
+                AccountMeta::new_readonly(ctx.accounts.wrapped_meta.key(), false),
                 AccountMeta::new_readonly(ctx.accounts.portal_authority_signer.key(), false),
                 AccountMeta::new(ctx.accounts.bridge_config.key(), false),
                 AccountMeta::new(ctx.accounts.portal_message.key(), true),
@@ -1050,7 +1057,7 @@ pub mod solana_project {
             ctx.accounts.zebec_eoa.to_account_info(),
             ctx.accounts.portal_config.to_account_info(),
             ctx.accounts.from.to_account_info(),
-            ctx.accounts.from_owner.to_account_info(),
+            ctx.accounts.pda_signer.to_account_info(),
             ctx.accounts.wrapped_mint.to_account_info(),
             ctx.accounts.wrapped_meta.to_account_info(),
             ctx.accounts.portal_authority_signer.to_account_info(),
@@ -1247,7 +1254,7 @@ fn process_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMs
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
     let amount = get_u64(encoded_str[17..25].to_vec());
-    let _to_chain_id = get_u16(encoded_str[25..57].to_vec());
+    let _to_chain_id = get_u256(encoded_str[25..57].to_vec());
     let senderwallet_bytes = encoded_str[57..89].to_vec();
     let receiver_wallet_bytes = encoded_str[89..121].to_vec();
     let can_update = get_u64(encoded_str[121..129].to_vec());
@@ -1290,7 +1297,7 @@ fn process_update_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<
 
 fn process_pause(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
     let transaction_data = &mut ctx.accounts.data_storage;
-    let _to_chain_id = get_u16(encoded_str[1..33].to_vec());
+    let _to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let depositor_wallet_bytes = encoded_str[33..65].to_vec();
     let token_mint = encoded_str[65..97].to_vec();
     let receiver_wallet_bytes = encoded_str[97..129].to_vec();
@@ -1306,7 +1313,7 @@ fn process_pause(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg
 //receiver will withdraw streamed tokens (receiver == withdrawer)
 fn process_withdraw_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
     let transaction_data = &mut ctx.accounts.data_storage;
-    let _to_chain_id = get_u16(encoded_str[1..33].to_vec());
+    let _to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let withdrawer_wallet_bytes = encoded_str[33..65].to_vec();
     let token_mint = encoded_str[65..97].to_vec();
     let depositor_wallet_bytes = encoded_str[97..129].to_vec();
@@ -1321,7 +1328,7 @@ fn process_withdraw_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Contex
 
 fn process_cancel_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
     let transaction_data = &mut ctx.accounts.data_storage;
-    let _to_chain_id = get_u16(encoded_str[1..33].to_vec());
+    let _to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let depositor_wallet_bytes = encoded_str[33..65].to_vec();
     let token_mint = encoded_str[65..97].to_vec();
     let receiver_wallet_bytes = encoded_str[97..129].to_vec();
