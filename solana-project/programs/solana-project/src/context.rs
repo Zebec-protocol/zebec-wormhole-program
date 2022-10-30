@@ -120,7 +120,7 @@ pub struct SendMsg<'info>{
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     current_count: u8,
-    sender: Vec<u8>,
+    sender: [u8; 32],
 )]
 pub struct CreateTransaction<'info> {
     #[account(zero, signer)]
@@ -135,7 +135,7 @@ pub struct CreateTransaction<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            current_count.to_string().as_bytes()
+            &[current_count]
         ],
         bump
     )]
@@ -161,7 +161,7 @@ pub struct CreateTransaction<'info> {
     data: Vec<u8>,
     current_count: u8,
     chain_id: Vec<u8>,
-    sender: Vec<u8>,
+    sender: [u8; 32],
 )]
 pub struct CETransaction<'info> {
     #[account(zero, signer)]
@@ -176,7 +176,7 @@ pub struct CETransaction<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            current_count.to_string().as_bytes()
+            &[current_count]
         ],
         bump
     )]
@@ -207,7 +207,7 @@ pub struct CETransaction<'info> {
 
 #[derive(Accounts)]
 #[instruction( 
-    sender: Vec<u8>,
+    sender: [u8; 32],
     chain_id: Vec<u8>,
     current_count: u8,
 )]
@@ -221,7 +221,7 @@ pub struct DirectTransferNative<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            current_count.to_string().as_bytes()
+            &[current_count]
         ],
         bump
     )]
@@ -364,7 +364,7 @@ pub struct DirectTransferNative<'info> {
 
 #[derive(Accounts)]
 #[instruction( 
-    sender: Vec<u8>,
+    sender: [u8; 32],
     sender_chain: Vec<u8>,
     token_address: Vec<u8>,
     token_chain: u16,
@@ -380,7 +380,7 @@ pub struct DirectTransferWrapped<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            current_count.to_string().as_bytes()
+            &[current_count]
         ],
         bump
     )]
@@ -530,7 +530,7 @@ pub struct DirectTransferWrapped<'info> {
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     current_count: u8,
-    sender: Vec<u8>,
+    sender: [u8; 32],
 )]
 pub struct CreateTransactionReceiver<'info> {
     #[account(zero, signer)]
@@ -545,7 +545,7 @@ pub struct CreateTransactionReceiver<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            current_count.to_string().as_bytes()
+            &[current_count]
         ],
         bump
     )]
@@ -567,7 +567,7 @@ pub struct CreateTransactionReceiver<'info> {
 #[derive(Accounts)]
 #[instruction(
     current_count: u8, 
-    sender: Vec<u8>, 
+    sender: [u8; 32], 
 )]
 pub struct StoreMsg<'info>{
 
@@ -605,7 +605,7 @@ pub struct StoreMsg<'info>{
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            current_count.to_string().as_bytes()
+            &[current_count]
         ],
         bump,
     )]

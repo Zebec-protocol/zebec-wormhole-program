@@ -122,7 +122,7 @@ pub mod solana_project {
         Ok(())
     }
 
-    pub fn store_msg(ctx: Context<StoreMsg>, current_count: u8, sender: Vec<u8>) -> Result<()> {
+    pub fn store_msg(ctx: Context<StoreMsg>, current_count: u8, sender: [u8; 32]) -> Result<()> {
         //Hash a VAA Extract and derive a VAA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
         let serialized_vaa = serialize_vaa(&vaa);
@@ -190,7 +190,7 @@ pub mod solana_project {
         data: Vec<u8>,
         current_count: u8,
         chain_id: Vec<u8>,
-        sender: Vec<u8>,
+        sender: [u8; 32],
     ) -> Result<()> {
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -215,7 +215,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[1].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
 
         //check pdaSender
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
@@ -277,7 +277,7 @@ pub mod solana_project {
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         current_count: u8,
-        sender: Vec<u8>,
+        sender: [u8; 32],
     ) -> Result<()> {
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -302,7 +302,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[5].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[6].pubkey;
@@ -366,7 +366,7 @@ pub mod solana_project {
         data: Vec<u8>,
         current_count: u8,
         chain_id: Vec<u8>,
-        sender: Vec<u8>,
+        sender: [u8; 32],
     ) -> Result<()> {
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -398,7 +398,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[3].pubkey;
@@ -483,7 +483,7 @@ pub mod solana_project {
         data: Vec<u8>,
         current_count: u8,
         chain_id: Vec<u8>,
-        sender: Vec<u8>,
+        sender: [u8; 32],
     ) -> Result<()> {
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -513,7 +513,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[0].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
@@ -582,7 +582,7 @@ pub mod solana_project {
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         current_count: u8,
-        sender: Vec<u8>,
+        sender: [u8; 32],
     ) -> Result<()> {
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -619,7 +619,7 @@ pub mod solana_project {
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
         require!(
-            sender == receiver_stored,
+            sender.to_vec() == receiver_stored,
             MessengerError::InvalidDataProvided
         );
 
@@ -656,7 +656,7 @@ pub mod solana_project {
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         current_count: u8,
-        sender: Vec<u8>,
+        sender: [u8; 32],
     ) -> Result<()> {
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -688,7 +688,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
@@ -727,7 +727,7 @@ pub mod solana_project {
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         current_count: u8,
-        sender: Vec<u8>,
+        sender: [u8; 32],
     ) -> Result<()> {
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -752,7 +752,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
 
         //check pdaSender
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
@@ -783,7 +783,7 @@ pub mod solana_project {
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         current_count: u8,
-        sender: Vec<u8>,
+        sender: [u8; 32],
     ) -> Result<()> {
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -808,7 +808,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
@@ -851,7 +851,7 @@ pub mod solana_project {
     //create and execute direct transfer native
     pub fn transaction_direct_transfer_native(
         ctx: Context<DirectTransferNative>,
-        sender: Vec<u8>,
+        sender: [u8; 32],
         chain_id: Vec<u8>,
         current_count: u8,
         target_chain: u16,
@@ -870,7 +870,7 @@ pub mod solana_project {
 
         //check sender
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
 
         //check receiver
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
@@ -893,7 +893,7 @@ pub mod solana_project {
     //create and execute direct transfer wrapped
     pub fn transaction_direct_transfer_wrapped(
         ctx: Context<DirectTransferWrapped>,
-        sender: Vec<u8>,
+        sender: [u8; 32],
         sender_chain: Vec<u8>,
         token_address: Vec<u8>,
         token_chain: u16,
@@ -915,7 +915,7 @@ pub mod solana_project {
 
         //check sender
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
 
         //check receiver
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
@@ -934,7 +934,7 @@ pub mod solana_project {
 
         transfer_wrapped(
             ctx,
-            sender,
+            sender.to_vec(),
             sender_chain,
             target_chain,
             fee,
@@ -1085,7 +1085,7 @@ pub mod solana_project {
     //transfer
     pub fn transfer_native(
         ctx: Context<DirectTransferNative>,
-        sender: Vec<u8>,
+        sender: [u8; 32],
         sender_chain: Vec<u8>,
         target_chain: u16,
         fee: u64,
