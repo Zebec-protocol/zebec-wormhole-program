@@ -143,18 +143,15 @@ pub mod solana_project {
             &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
         );
 
-        if ctx.accounts.core_bridge_vaa.key() != vaa_key {
-            return err!(MessengerError::VAAKeyMismatch);
-        }
-
+        require!(ctx.accounts.core_bridge_vaa.key() == vaa_key, MessengerError::VAAKeyMismatch);
+        
         // Already checked that the SignedVaa is owned by core bridge in account constraint logic
         // Check that the emitter chain and address match up with the vaa
-        if vaa.emitter_chain != ctx.accounts.emitter_acc.chain_id
-            || vaa.emitter_address
-                != &decode(&ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..]
-        {
-            return err!(MessengerError::VAAEmitterMismatch);
-        }
+        require!(
+            vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id && 
+            vaa.emitter_address == &decode(&ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            MessengerError::VAAEmitterMismatch
+        );
 
         // Encoded String
         let encoded_str = vaa.payload.clone();
@@ -967,9 +964,8 @@ pub mod solana_project {
     ) -> Result<()> {
         // params if passed incorrecrtly the signature will not work and the txn will panic.
         // Has this been executed already?
-        if ctx.accounts.transaction.did_execute {
-            return Err(MessengerError::AlreadyExecuted.into());
-        }
+        require!(!ctx.accounts.transaction.did_execute, MessengerError::AlreadyExecuted);
+        
         // Burn the transaction to ensure one time use.
         ctx.accounts.transaction.did_execute = true;
 
