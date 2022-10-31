@@ -1205,17 +1205,6 @@ pub mod solana_project {
     }
 }
 
-pub fn vaa_hash(vaa: AccountInfo) -> [u8; 32] {
-    let vaa = PostedMessageData::try_from_slice(&vaa.data.borrow())
-        .unwrap()
-        .0;
-    let serialized_vaa = serialize_vaa(&vaa);
-    let mut h = sha3::Keccak256::default();
-    h.write_all(serialized_vaa.as_slice()).unwrap();
-    let vaa_hash: [u8; 32] = h.finalize().into();
-    return vaa_hash;
-}
-
 fn get_u64(data_bytes: Vec<u8>) -> u64 {
     let data_u8 = <[u8; 8]>::try_from(data_bytes).unwrap();
     return u64::from_be_bytes(data_u8);
