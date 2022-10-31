@@ -27,5 +27,8 @@ pub enum MessengerError {
     ReceiptClaimed,
 
     #[msg("Invalid Caller")]
-    InvalidCaller
+    InvalidCaller,
+
+    #[msg("Overflow")]
+    Overflow,
 }

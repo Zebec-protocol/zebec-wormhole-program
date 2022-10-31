@@ -118,7 +118,12 @@ pub mod solana_project {
             ]],
         )?;
 
-        ctx.accounts.config.nonce += 1;
+        let sum = ctx.accounts.config.nonce.checked_add(1);
+        match sum {
+            None => return Err(MessengerError::Overflow.into()),
+            Some (val) => ctx.accounts.config.nonce = val,
+        }
+
         Ok(())
     }
 
@@ -157,7 +162,12 @@ pub mod solana_project {
 
         // Change Transaction Count to Current Count
         let txn_count = &mut ctx.accounts.txn_count;
-        txn_count.count += 1;
+        let sum = txn_count.count.checked_add(1);
+
+         match sum {
+            None => return Err(MessengerError::Overflow.into()),
+            Some (val) => txn_count.count = val,
+        }
 
         let count_stored = ctx.accounts.txn_count.count;
         require!(
@@ -1077,7 +1087,11 @@ pub mod solana_project {
 
         invoke_signed(&transfer_ix, &transfer_accs, signer_seeds)?;
 
-        ctx.accounts.config.nonce += 1;
+        let sum = ctx.accounts.config.nonce.checked_add(1);
+        match sum {
+            None => return Err(MessengerError::Overflow.into()),
+            Some (val) => ctx.accounts.config.nonce = val,
+        }
 
         Ok(())
     }
@@ -1179,7 +1193,11 @@ pub mod solana_project {
 
         invoke_signed(&transfer_ix, &transfer_accs, signer_seeds)?;
 
-        ctx.accounts.config.nonce += 1;
+        let sum = ctx.accounts.config.nonce.checked_add(1);
+        match sum {
+            None => return Err(MessengerError::Overflow.into()),
+            Some (val) => ctx.accounts.config.nonce = val,
+        }
 
         Ok(())
     }
