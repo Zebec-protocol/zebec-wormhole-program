@@ -31,4 +31,7 @@ pub enum MessengerError {
 
     #[msg("Overflow")]
     Overflow,
+
+    #[msg("Invalid Payload")]
+    InvalidPayload,
 }

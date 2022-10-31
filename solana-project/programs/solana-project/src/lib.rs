@@ -187,7 +187,7 @@ pub mod solana_project {
             14 => process_update_stream(encoded_str, vaa.emitter_chain, ctx),
             16 => process_cancel_stream(encoded_str, vaa.emitter_chain, ctx),
             17 => process_direct_transfer(encoded_str, vaa.emitter_chain, ctx),
-            _ => msg!("error"),
+            _ => return err!(MessengerError::InvalidPayload),
         }
         Ok(())
     }
