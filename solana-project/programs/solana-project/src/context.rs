@@ -43,7 +43,7 @@ pub struct RegisterChain<'info> {
         seeds=[b"EmitterAddress".as_ref(), chain_id.to_be_bytes().as_ref()],
         payer=owner,
         bump,
-        space=8+2+256
+        space=8 + 2 + 4 + EVM_CHAIN_ADDRESS_LENGTH
     )]
     pub emitter_acc: Account<'info, EmitterAddrAccount>,
 }

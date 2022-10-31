@@ -50,6 +50,8 @@ pub mod solana_project {
         chain_id: u16,
         emitter_addr: String,
     ) -> Result<()> {
+        require!( emitter_addr.len() == EVM_CHAIN_ADDRESS_LENGTH, MessengerError::InvalidEmitterAddress);
+        
         ctx.accounts.emitter_acc.chain_id = chain_id;
         ctx.accounts.emitter_acc.emitter_addr = emitter_addr;
         Ok(())

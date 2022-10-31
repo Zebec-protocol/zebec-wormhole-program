@@ -34,4 +34,7 @@ pub enum MessengerError {
 
     #[msg("Invalid Payload")]
     InvalidPayload,
+
+    #[msg("Invalid Emitter Address Provided")]
+    InvalidEmitterAddress,
 }
