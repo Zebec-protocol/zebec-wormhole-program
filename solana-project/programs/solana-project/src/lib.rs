@@ -174,7 +174,7 @@ pub mod solana_project {
         let count_stored = ctx.accounts.txn_count.count;
         require!(
             count_stored == current_count,
-            MessengerError::InvalidDataProvided
+            MessengerError::CountMismatch
         );
 
         // Switch Based on the code
@@ -214,20 +214,23 @@ pub mod solana_project {
         let count_stored = ctx.accounts.txn_count.count;
         require!(
             count_stored == current_count,
-            MessengerError::InvalidDataProvided
+            MessengerError::CountMismatch
         );
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[6].pubkey;
         require!(
             mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
-            MessengerError::InvalidDataProvided
+            MessengerError::MintKeyMismatch
         );
 
         //check sender
         let pda_sender_passed: Pubkey = accs[1].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
+        require!(
+            sender.to_vec() == sender_stored, 
+            MessengerError::PdaSenderMismatch
+        );
 
         //check pdaSender
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
@@ -236,7 +239,7 @@ pub mod solana_project {
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == derived_pubkey.0,
-            MessengerError::InvalidPDASigner
+            MessengerError::SenderDerivedKeyMismatch
         );
 
         //check data params passed
@@ -246,7 +249,7 @@ pub mod solana_project {
         let amount_passed = decode_data.amount;
         require!(
             amount_passed == ctx.accounts.data_storage.amount,
-            MessengerError::InvalidDataProvided
+            MessengerError::AmountMismatch
         );
 
         //execute txn
@@ -301,20 +304,23 @@ pub mod solana_project {
         let count_stored = ctx.accounts.txn_count.count;
         require!(
             count_stored == current_count,
-            MessengerError::InvalidDataProvided
+            MessengerError::CountMismatch
         );
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[9].pubkey;
         require!(
             mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
-            MessengerError::InvalidDataProvided
+            MessengerError::MintKeyMismatch
         );
 
         //check sender
         let pda_sender_passed: Pubkey = accs[5].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
+        require!(
+            sender.to_vec() == sender_stored, 
+            MessengerError::PdaSenderMismatch
+        );
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[6].pubkey;
@@ -327,7 +333,7 @@ pub mod solana_project {
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
-            MessengerError::InvalidPDASigner
+            MessengerError::SenderDerivedKeyMismatch
         );
 
         //check pdaReceiver
@@ -339,7 +345,7 @@ pub mod solana_project {
         );
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
-            MessengerError::InvalidDataProvided
+            MessengerError::ReceiverDerivedKeyMismatch
         );
 
         //check data params passed
@@ -348,23 +354,23 @@ pub mod solana_project {
         let decode_data = Stream::try_from_slice(data_slice)?;
         require!(
             decode_data.amount == ctx.accounts.data_storage.amount,
-            MessengerError::InvalidDataProvided
+            MessengerError::AmountMismatch
         );
         require!(
             decode_data.start_time == ctx.accounts.data_storage.start_time,
-            MessengerError::InvalidDataProvided
+            MessengerError::StartTimeMismatch
         );
         require!(
             decode_data.end_time == ctx.accounts.data_storage.end_time,
-            MessengerError::InvalidDataProvided
+            MessengerError::EndTimeMismatch
         );
         require!(
             decode_data.can_cancel == ctx.accounts.data_storage.can_cancel,
-            MessengerError::InvalidDataProvided
+            MessengerError::CanCancelMismatch
         );
         require!(
             decode_data.can_update == ctx.accounts.data_storage.can_update,
-            MessengerError::InvalidDataProvided
+            MessengerError::CanUpdateMismatch
         );
 
         Ok(())
@@ -390,27 +396,27 @@ pub mod solana_project {
         let count_stored = ctx.accounts.txn_count.count;
         require!(
             count_stored == current_count,
-            MessengerError::InvalidDataProvided
+            MessengerError::CountMismatch
         );
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[4].pubkey;
         require!(
             mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
-            MessengerError::InvalidDataProvided
+            MessengerError::MintKeyMismatch
         );
 
         //check data account
         let data_account_passed: Pubkey = accs[0].pubkey;
         require!(
             data_account_passed == ctx.accounts.data_storage.data_account,
-            MessengerError::InvalidDataProvided
+            MessengerError::DataAccountMismatch
         );
 
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[3].pubkey;
@@ -423,7 +429,7 @@ pub mod solana_project {
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
-            MessengerError::InvalidPDASigner
+            MessengerError::SenderDerivedKeyMismatch
         );
 
         //check pdaReceiver
@@ -435,7 +441,7 @@ pub mod solana_project {
         );
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
-            MessengerError::InvalidDataProvided
+            MessengerError::ReceiverDerivedKeyMismatch
         );
 
         //check data params passed
@@ -444,15 +450,15 @@ pub mod solana_project {
         let decode_data = StreamUpdate::try_from_slice(data_slice)?;
         require!(
             decode_data.amount == ctx.accounts.data_storage.amount,
-            MessengerError::InvalidDataProvided
+            MessengerError::AmountMismatch
         );
         require!(
             decode_data.start_time == ctx.accounts.data_storage.start_time,
-            MessengerError::InvalidDataProvided
+            MessengerError::StartTimeMismatch
         );
         require!(
             decode_data.end_time == ctx.accounts.data_storage.end_time,
-            MessengerError::InvalidDataProvided
+            MessengerError::EndTimeMismatch
         );
 
         //execute txn
@@ -507,25 +513,25 @@ pub mod solana_project {
         let count_stored = ctx.accounts.txn_count.count;
         require!(
             count_stored == current_count,
-            MessengerError::InvalidDataProvided
+            MessengerError::CountMismatch
         );
 
         //check Mint passed
         // TODO: will be added in the later version of zebec contract
         // let mint_pubkey_passed: Pubkey = accs[4].pubkey;
-        // require!(mint_pubkey_passed == ctx.accounts.data_storage.token_mint, MessengerError::InvalidDataProvided);
+        // require!(mint_pubkey_passed == ctx.accounts.data_storage.token_mint, MessengerError::MintKeyMismatch);
 
         //check data account
         let data_account_passed: Pubkey = accs[2].pubkey;
         require!(
             data_account_passed == ctx.accounts.data_storage.data_account,
-            MessengerError::InvalidDataProvided
+            MessengerError::DataAccountMismatch
         );
 
         //check sender
         let pda_sender_passed: Pubkey = accs[0].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
@@ -538,7 +544,7 @@ pub mod solana_project {
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
-            MessengerError::InvalidPDASigner
+            MessengerError::SenderDerivedKeyMismatch
         );
 
         //check pdaReceiver
@@ -550,7 +556,7 @@ pub mod solana_project {
         );
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
-            MessengerError::InvalidDataProvided
+            MessengerError::ReceiverDerivedKeyMismatch
         );
 
         //check data params passed (no params passed)
@@ -606,21 +612,21 @@ pub mod solana_project {
         let count_stored = ctx.accounts.txn_count.count;
         require!(
             count_stored == current_count,
-            MessengerError::InvalidDataProvided
+            MessengerError::CountMismatch
         );
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[12].pubkey;
         require!(
             mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
-            MessengerError::InvalidDataProvided
+            MessengerError::MintKeyMismatch
         );
 
         //check data account
         let data_account_passed: Pubkey = accs[6].pubkey;
         require!(
             data_account_passed == ctx.accounts.data_storage.data_account,
-            MessengerError::InvalidDataProvided
+            MessengerError::DataAccountMismatch
         );
 
         //check sender
@@ -632,7 +638,7 @@ pub mod solana_project {
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
         require!(
             sender.to_vec() == receiver_stored,
-            MessengerError::InvalidDataProvided
+            MessengerError::PdaReceiverMismatch
         );
 
         //check pdaSender
@@ -644,7 +650,7 @@ pub mod solana_project {
         );
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
-            MessengerError::InvalidPDASigner
+            MessengerError::SenderDerivedKeyMismatch
         );
 
         //check pdaReceiver
@@ -654,7 +660,7 @@ pub mod solana_project {
         );
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
-            MessengerError::InvalidDataProvided
+            MessengerError::ReceiverDerivedKeyMismatch
         );
 
         //check data params passed
@@ -680,27 +686,27 @@ pub mod solana_project {
         let count_stored = ctx.accounts.txn_count.count;
         require!(
             count_stored == current_count,
-            MessengerError::InvalidDataProvided
+            MessengerError::CountMismatch
         );
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[12].pubkey;
         require!(
             mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
-            MessengerError::InvalidDataProvided
+            MessengerError::MintKeyMismatch
         );
 
         //check data account
         let data_account_passed: Pubkey = accs[6].pubkey;
         require!(
             data_account_passed == ctx.accounts.data_storage.data_account,
-            MessengerError::InvalidDataProvided
+            MessengerError::DataAccountMismatch
         );
 
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
@@ -713,7 +719,7 @@ pub mod solana_project {
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
-            MessengerError::InvalidPDASigner
+            MessengerError::SenderDerivedKeyMismatch
         );
 
         //check pdaReceiver
@@ -725,7 +731,7 @@ pub mod solana_project {
         );
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
-            MessengerError::InvalidDataProvided
+            MessengerError::ReceiverDerivedKeyMismatch
         );
 
         //check data params passed
@@ -751,20 +757,20 @@ pub mod solana_project {
         let count_stored = ctx.accounts.txn_count.count;
         require!(
             count_stored == current_count,
-            MessengerError::InvalidDataProvided
+            MessengerError::CountMismatch
         );
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[7].pubkey;
         require!(
             mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
-            MessengerError::InvalidDataProvided
+            MessengerError::MintKeyMismatch
         );
 
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check pdaSender
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
@@ -773,7 +779,7 @@ pub mod solana_project {
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
-            MessengerError::InvalidPDASigner
+            MessengerError::SenderDerivedKeyMismatch
         );
 
         //check data params passed
@@ -782,7 +788,7 @@ pub mod solana_project {
         let decode_data = TokenAmount::try_from_slice(data_slice)?;
         require!(
             decode_data.amount == ctx.accounts.data_storage.amount,
-            MessengerError::InvalidDataProvided
+            MessengerError::AmountMismatch
         );
 
         Ok(())
@@ -807,20 +813,20 @@ pub mod solana_project {
         let count_stored = ctx.accounts.txn_count.count;
         require!(
             count_stored == current_count,
-            MessengerError::InvalidDataProvided
+            MessengerError::CountMismatch
         );
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[8].pubkey;
         require!(
             mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
-            MessengerError::InvalidDataProvided
+            MessengerError::MintKeyMismatch
         );
 
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
@@ -833,7 +839,7 @@ pub mod solana_project {
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
-            MessengerError::InvalidPDASigner
+            MessengerError::SenderDerivedKeyMismatch
         );
 
         //check pdaReceiver
@@ -845,7 +851,7 @@ pub mod solana_project {
         );
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
-            MessengerError::InvalidDataProvided
+            MessengerError::ReceiverDerivedKeyMismatch
         );
 
         //check data params passed
@@ -854,7 +860,7 @@ pub mod solana_project {
         let decode_data = TokenAmount::try_from_slice(data_slice)?;
         require!(
             decode_data.amount == ctx.accounts.data_storage.amount,
-            MessengerError::InvalidDataProvided
+            MessengerError::AmountMismatch
         );
 
         Ok(())
@@ -872,17 +878,17 @@ pub mod solana_project {
         let count_stored = ctx.accounts.txn_count.count;
         require!(
             count_stored == current_count,
-            MessengerError::InvalidDataProvided
+            MessengerError::CountMismatch
         );
 
         require!(
             ctx.accounts.data_storage.token_mint == ctx.accounts.mint.key(),
-            MessengerError::InvalidDataProvided
+            MessengerError::DataAccountMismatch
         );
 
         //check sender
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
@@ -894,7 +900,7 @@ pub mod solana_project {
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
             ctx.accounts.pda_signer.key() == sender_derived_pubkey,
-            MessengerError::InvalidPDASigner
+            MessengerError::SenderDerivedKeyMismatch
         );
 
         msg!("Transaction Direct Transfer Native");
@@ -917,17 +923,17 @@ pub mod solana_project {
         let count_stored = ctx.accounts.txn_count.count;
         require!(
             count_stored == current_count,
-            MessengerError::InvalidDataProvided
+            MessengerError::CountMismatch
         );
 
         require!(
             ctx.accounts.data_storage.token_mint == ctx.accounts.wrapped_mint.key(),
-            MessengerError::InvalidDataProvided
+            MessengerError::MintKeyMismatch
         );
 
         //check sender
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::InvalidDataProvided);
+        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
@@ -939,7 +945,7 @@ pub mod solana_project {
             Pubkey::find_program_address(&[&sender, &chain_id_seed], &ctx.program_id);
         require!(
             ctx.accounts.pda_signer.key() == sender_derived_pubkey,
-            MessengerError::InvalidPDASigner
+            MessengerError::SenderDerivedKeyMismatch
         );
 
         msg!("Transaction Direct Transfer Wrapped");

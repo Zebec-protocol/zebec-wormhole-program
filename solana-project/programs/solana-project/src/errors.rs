@@ -11,12 +11,6 @@ pub enum MessengerError {
     #[msg("The given transaction has already been executed.")]
     AlreadyExecuted,
 
-    #[msg("The given PDA Signer is invalid for the current transation. ")]
-    InvalidPDASigner,
-
-    #[msg("Data differs from the Wormhole and Client Side.")]
-    InvalidDataProvided,
-
     #[msg("Invalid Caller")]
     InvalidCaller,
 
@@ -28,4 +22,40 @@ pub enum MessengerError {
 
     #[msg("Invalid Emitter Address Provided")]
     InvalidEmitterAddress,
+
+    #[msg("Invalid Count")]
+    CountMismatch,
+
+    #[msg("Invalid Mint Key")]
+    MintKeyMismatch,
+
+    #[msg("Invalid Pda Sender")]
+    PdaSenderMismatch,
+
+    #[msg("Invalid Pda Receiver")]
+    PdaReceiverMismatch,
+
+    #[msg("Invalid Sender Derived Public Key")]
+    SenderDerivedKeyMismatch,
+
+    #[msg("Invalid Receiver Derived Public Key")]
+    ReceiverDerivedKeyMismatch,
+
+    #[msg("Invalid Amount")]
+    AmountMismatch,
+
+    #[msg("Invalid Start Time")]
+    StartTimeMismatch,
+
+    #[msg("Invalid End Time")]
+    EndTimeMismatch,
+
+    #[msg("Invalid Can Cancel")]
+    CanCancelMismatch,
+
+    #[msg("Invalid Can Update")]
+    CanUpdateMismatch,
+
+    #[msg("Invalid Data Account")]
+    DataAccountMismatch,
 }
