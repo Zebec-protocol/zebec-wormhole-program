@@ -115,7 +115,7 @@ pub mod solana_project {
                 ctx.accounts.system_program.to_account_info(),
             ],
             &[&[
-                &b"emitter".as_ref(),
+                b"emitter".as_ref(),
                 &[*ctx.bumps.get("wormhole_derived_emitter").unwrap()],
             ]],
         )?;
@@ -233,7 +233,7 @@ pub mod solana_project {
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
         let derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], &ctx.program_id);
+            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], ctx.program_id);
         require!(
             pda_sender_passed == derived_pubkey.0,
             MessengerError::InvalidPDASigner
@@ -324,7 +324,7 @@ pub mod solana_project {
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], &ctx.program_id);
+            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::InvalidPDASigner
@@ -420,7 +420,7 @@ pub mod solana_project {
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], &ctx.program_id);
+            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::InvalidPDASigner
@@ -431,7 +431,7 @@ pub mod solana_project {
         let chain_id_seed = chain_id_stored.as_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
             &[&receiver_stored[..], &chain_id_seed[..]],
-            &ctx.program_id,
+            ctx.program_id,
         );
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
@@ -535,7 +535,7 @@ pub mod solana_project {
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], &ctx.program_id);
+            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::InvalidPDASigner
@@ -546,7 +546,7 @@ pub mod solana_project {
         let chain_id_seed = chain_id_stored.as_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
             &[&receiver_stored[..], &chain_id_seed[..]],
-            &ctx.program_id,
+            ctx.program_id,
         );
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
@@ -640,7 +640,7 @@ pub mod solana_project {
         let chain_id_seed = chain_id_stored.as_bytes();
         let sender_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
             &[&sender_stored[..], &chain_id_seed[..]],
-            &ctx.program_id,
+            ctx.program_id,
         );
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
@@ -650,7 +650,7 @@ pub mod solana_project {
         //check pdaReceiver
         let receiver_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
             &[&receiver_stored[..], &chain_id_seed[..]],
-            &ctx.program_id,
+            ctx.program_id,
         );
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
@@ -710,7 +710,7 @@ pub mod solana_project {
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], &ctx.program_id);
+            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::InvalidPDASigner
@@ -721,7 +721,7 @@ pub mod solana_project {
         let chain_id_seed = chain_id_stored.as_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
             &[&receiver_stored[..], &chain_id_seed[..]],
-            &ctx.program_id,
+            ctx.program_id,
         );
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
@@ -770,7 +770,7 @@ pub mod solana_project {
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], &ctx.program_id);
+            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::InvalidPDASigner
@@ -830,7 +830,7 @@ pub mod solana_project {
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], &ctx.program_id);
+            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::InvalidPDASigner
@@ -841,7 +841,7 @@ pub mod solana_project {
         let chain_id_seed = chain_id_stored.as_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
             &[&receiver_stored[..], &chain_id_seed[..]],
-            &ctx.program_id,
+            ctx.program_id,
         );
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
@@ -891,7 +891,7 @@ pub mod solana_project {
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
         let (sender_derived_pubkey, _): (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], &ctx.program_id);
+            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], ctx.program_id);
         require!(
             ctx.accounts.pda_signer.key() == sender_derived_pubkey,
             MessengerError::InvalidPDASigner
@@ -936,7 +936,7 @@ pub mod solana_project {
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
         let (sender_derived_pubkey, _): (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], &ctx.program_id);
+            Pubkey::find_program_address(&[&sender[..], &chain_id_seed[..]], ctx.program_id);
         require!(
             ctx.accounts.pda_signer.key() == sender_derived_pubkey,
             MessengerError::InvalidPDASigner
