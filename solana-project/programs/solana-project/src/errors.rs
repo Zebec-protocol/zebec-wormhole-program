@@ -13,18 +13,9 @@ pub enum MessengerError {
 
     #[msg("The given PDA Signer is invalid for the current transation. ")]
     InvalidPDASigner,
-    
-    #[msg("Invalid leng.")]
-    InvalidOwnersLen,
-
-    #[msg("Not unique.")]
-    UniqueOwners, 
 
     #[msg("Data differs from the Wormhole and Client Side.")]
     InvalidDataProvided,
-    
-    #[msg("Receipt already claimed!")]
-    ReceiptClaimed,
 
     #[msg("Invalid Caller")]
     InvalidCaller,
