@@ -1207,26 +1207,19 @@ pub mod solana_project {
 
 fn get_u64(data_bytes: Vec<u8>) -> u64 {
     let data_u8 = <[u8; 8]>::try_from(data_bytes).unwrap();
-    return u64::from_be_bytes(data_u8);
-}
-
-fn get_u16(data_bytes: Vec<u8>) -> u64 {
-    let prefix_bytes = vec![0; 6];
-    let joined_bytes = [prefix_bytes, data_bytes].concat();
-    let data_u8 = <[u8; 8]>::try_from(joined_bytes).unwrap();
-    return u64::from_be_bytes(data_u8);
+    u64::from_be_bytes(data_u8)
 }
 
 fn get_u256(data_bytes: Vec<u8>) -> U256 {
     let data_u8 = <[u8; 32]>::try_from(data_bytes).unwrap();
-    return U256::from_big_endian(&data_u8);
+    U256::from_big_endian(&data_u8)
 }
 
 fn get_u8(data_bytes: Vec<u8>) -> u64 {
     let prefix_bytes = vec![0; 7];
     let joined_bytes = [prefix_bytes, data_bytes].concat();
     let data_u8 = <[u8; 8]>::try_from(joined_bytes).unwrap();
-    return u64::from_be_bytes(data_u8);
+    u64::from_be_bytes(data_u8)
 }
 
 // Convert a full VAA structure into the serialization of its unique components, this structure is
