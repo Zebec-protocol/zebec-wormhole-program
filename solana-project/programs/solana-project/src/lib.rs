@@ -133,7 +133,7 @@ pub mod solana_project {
         let serialized_vaa = serialize_vaa(&vaa);
 
         let mut h = sha3::Keccak256::default();
-        h.write(serialized_vaa.as_slice()).unwrap();
+        h.write_all(serialized_vaa.as_slice()).unwrap();
         let vaa_hash: [u8; 32] = h.finalize().into();
 
         let (vaa_key, _) = Pubkey::find_program_address(
@@ -1209,7 +1209,7 @@ pub fn vaa_hash(vaa: AccountInfo) -> [u8; 32] {
         .0;
     let serialized_vaa = serialize_vaa(&vaa);
     let mut h = sha3::Keccak256::default();
-    h.write(serialized_vaa.as_slice()).unwrap();
+    h.write_all(serialized_vaa.as_slice()).unwrap();
     let vaa_hash: [u8; 32] = h.finalize().into();
     return vaa_hash;
 }
@@ -1246,10 +1246,10 @@ pub fn serialize_vaa(vaa: &MessageData) -> Vec<u8> {
     v.write_u32::<BigEndian>(vaa.nonce).unwrap();
     v.write_u16::<BigEndian>(vaa.emitter_chain.clone() as u16)
         .unwrap();
-    v.write(&vaa.emitter_address).unwrap();
+    v.write_all(&vaa.emitter_address).unwrap();
     v.write_u64::<BigEndian>(vaa.sequence).unwrap();
     v.write_u8(vaa.consistency_level).unwrap();
-    v.write(&vaa.payload).unwrap();
+    v.write_all(&vaa.payload).unwrap();
     v.into_inner()
 }
 

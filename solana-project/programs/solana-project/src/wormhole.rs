@@ -96,7 +96,7 @@ pub struct MessageData {
 
 impl AnchorSerialize for PostedMessageData {
     fn serialize<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        writer.write(b"msg")?;
+        writer.write_all(b"msg")?;
         BorshSerialize::serialize(&self.0, writer)
     }
 }
