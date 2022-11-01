@@ -462,7 +462,7 @@ pub mod solana_project {
         tx.program_id = pid;
         tx.accounts = accs.clone();
         tx.did_execute = false;
-        tx.data = data.clone();
+        tx.data = data;
 
         let count_stored = ctx.accounts.txn_count.count;
         require!(
@@ -566,7 +566,7 @@ pub mod solana_project {
         tx.program_id = pid;
         tx.accounts = accs.clone();
         tx.did_execute = false;
-        tx.data = data.clone();
+        tx.data = data;
 
         let count_stored = ctx.accounts.txn_count.count;
         require!(
@@ -643,7 +643,7 @@ pub mod solana_project {
         tx.program_id = pid;
         tx.accounts = accs.clone();
         tx.did_execute = false;
-        tx.data = data.clone();
+        tx.data = data;
 
         let count_stored = ctx.accounts.txn_count.count;
         require!(
