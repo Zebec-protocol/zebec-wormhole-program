@@ -140,7 +140,6 @@ pub mod solana_project {
         pid: Pubkey,
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
-        current_count: u8,
         chain_id: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
@@ -152,10 +151,7 @@ pub mod solana_project {
         tx.data = data.clone();
 
         let count_stored = ctx.accounts.txn_count.count;
-        require!(
-            count_stored == current_count,
-            MessengerError::CountMismatch
-        );
+    
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[6].pubkey;
@@ -223,7 +219,7 @@ pub mod solana_project {
         solana_program::program::invoke_signed(&ix, accounts, signer)?;
         emit!(Deposited{
             sender: sender, 
-            current_count: current_count
+            current_count: count_stored
         });
         Ok(())
     }
@@ -235,7 +231,7 @@ pub mod solana_project {
         pid: Pubkey,
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
-        current_count: u8,
+
         sender: [u8; 32],
     ) -> Result<()> {
         //Build Transactions
@@ -246,10 +242,6 @@ pub mod solana_project {
         tx.data = data.clone();
 
         let count_stored = ctx.accounts.txn_count.count;
-        require!(
-            count_stored == current_count,
-            MessengerError::CountMismatch
-        );
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[9].pubkey;
@@ -319,7 +311,7 @@ pub mod solana_project {
 
         emit!(StreamCreated{
             sender: sender, 
-            current_count: current_count,
+            current_count: count_stored,
         });
         Ok(())
     }
@@ -330,7 +322,6 @@ pub mod solana_project {
         pid: Pubkey,
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
-        current_count: u8,
         chain_id: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
@@ -342,11 +333,7 @@ pub mod solana_project {
         tx.data = data.clone();
 
         let count_stored = ctx.accounts.txn_count.count;
-        require!(
-            count_stored == current_count,
-            MessengerError::CountMismatch
-        );
-
+      
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[4].pubkey;
         require!(
@@ -439,7 +426,7 @@ pub mod solana_project {
         
         emit!(StreamUpdated{
             sender: sender,
-            current_count: current_count
+            current_count: count_stored
         });            
         Ok(())
     }
@@ -450,7 +437,6 @@ pub mod solana_project {
         pid: Pubkey,
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
-        current_count: u8,
         chain_id: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
@@ -462,11 +448,7 @@ pub mod solana_project {
         tx.data = data;
 
         let count_stored = ctx.accounts.txn_count.count;
-        require!(
-            count_stored == current_count,
-            MessengerError::CountMismatch
-        );
-
+     
         //check data account
         let data_account_passed: Pubkey = accs[2].pubkey;
         require!(
@@ -538,7 +520,7 @@ pub mod solana_project {
         
         emit!(PausedResumed{
             sender: sender,
-            current_count: current_count
+            current_count: count_stored
         });
         Ok(())
     }
@@ -550,7 +532,6 @@ pub mod solana_project {
         pid: Pubkey,
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
-        current_count: u8,
         sender: [u8; 32],
     ) -> Result<()> {
         //Build Transactions
@@ -561,11 +542,7 @@ pub mod solana_project {
         tx.data = data;
 
         let count_stored = ctx.accounts.txn_count.count;
-        require!(
-            count_stored == current_count,
-            MessengerError::CountMismatch
-        );
-
+       
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[12].pubkey;
         require!(
@@ -616,7 +593,7 @@ pub mod solana_project {
 
         emit!(ReceiverWithdrawCreated{
             sender: sender, 
-            current_count: current_count,
+            current_count: count_stored,
         });
         Ok(())
     }
@@ -627,7 +604,6 @@ pub mod solana_project {
         pid: Pubkey,
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
-        current_count: u8,
         sender: [u8; 32],
     ) -> Result<()> {
         //Build Transactions
@@ -638,11 +614,7 @@ pub mod solana_project {
         tx.data = data;
 
         let count_stored = ctx.accounts.txn_count.count;
-        require!(
-            count_stored == current_count,
-            MessengerError::CountMismatch
-        );
-
+        
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[12].pubkey;
         require!(
@@ -690,7 +662,7 @@ pub mod solana_project {
 
         emit!(CancelCreated{
             sender: sender, 
-            current_count: current_count, 
+            current_count: count_stored, 
         });
         Ok(())
     }
@@ -701,7 +673,7 @@ pub mod solana_project {
         pid: Pubkey,
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
-        current_count: u8,
+
         sender: [u8; 32],
     ) -> Result<()> {
         //Build Transactions
@@ -712,11 +684,7 @@ pub mod solana_project {
         tx.data = data.clone();
 
         let count_stored = ctx.accounts.txn_count.count;
-        require!(
-            count_stored == current_count,
-            MessengerError::CountMismatch
-        );
-
+     
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[7].pubkey;
         require!(
@@ -750,7 +718,7 @@ pub mod solana_project {
 
         emit!(SenderWithdrawCreated{
             sender: sender,
-            current_count: current_count
+            current_count: count_stored
         });
         Ok(())
     }
@@ -761,7 +729,6 @@ pub mod solana_project {
         pid: Pubkey,
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
-        current_count: u8,
         sender: [u8; 32],
     ) -> Result<()> {
         //Build Transactions
@@ -772,10 +739,6 @@ pub mod solana_project {
         tx.data = data.clone();
 
         let count_stored = ctx.accounts.txn_count.count;
-        require!(
-            count_stored == current_count,
-            MessengerError::CountMismatch
-        );
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[8].pubkey;
@@ -826,7 +789,7 @@ pub mod solana_project {
         
         emit!(InstantTransferCreated{
             sender: sender,
-            current_count: current_count,
+            current_count: count_stored,
         });
         Ok(())
     }
@@ -836,15 +799,12 @@ pub mod solana_project {
         ctx: Context<DirectTransferNative>,
         sender: [u8; 32],
         chain_id: Vec<u8>,
-        current_count: u8,
+
         target_chain: u16,
         fee: u64,
     ) -> Result<()> {
         let count_stored = ctx.accounts.txn_count.count;
-        require!(
-            count_stored == current_count,
-            MessengerError::CountMismatch
-        );
+        
 
         require!(
             ctx.accounts.data_storage.token_mint == ctx.accounts.mint.key(),
@@ -873,7 +833,7 @@ pub mod solana_project {
             sender_chain: chain_id.clone(),
             target_chain: target_chain,
             receiver: receiver_stored.clone(),
-            current_count: current_count,
+            current_count: count_stored,
         });
 
         transfer_native(

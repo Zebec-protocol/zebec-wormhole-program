@@ -50,7 +50,6 @@ pub struct RegisterChain<'info> {
     pid: Pubkey,
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
-    current_count: u8,
     sender: [u8; 32],
 )]
 pub struct CreateTransaction<'info> {
@@ -66,7 +65,7 @@ pub struct CreateTransaction<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[current_count]
+            &[txn_count.count]
         ],
         bump
     )]
@@ -90,7 +89,6 @@ pub struct CreateTransaction<'info> {
     pid: Pubkey,
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
-    current_count: u8,
     chain_id: Vec<u8>,
     sender: [u8; 32],
 )]
@@ -107,7 +105,7 @@ pub struct CETransaction<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[current_count]
+            &[txn_count.count]
         ],
         bump
     )]
@@ -139,7 +137,6 @@ pub struct CETransaction<'info> {
 #[instruction( 
     sender: [u8; 32],
     chain_id: Vec<u8>,
-    current_count: u8,
 )]
 pub struct DirectTransferNative<'info> {
     // One of the owners. Checked in the handler.
@@ -151,7 +148,7 @@ pub struct DirectTransferNative<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[current_count]
+            &[txn_count.count]
         ],
         bump
     )]
@@ -297,7 +294,6 @@ pub struct DirectTransferNative<'info> {
     sender_chain: Vec<u8>,
     token_address: Vec<u8>,
     token_chain: u16,
-    current_count: u8
 )]
 pub struct DirectTransferWrapped<'info> {
     // One of the owners. Checked in the handler.
@@ -309,7 +305,7 @@ pub struct DirectTransferWrapped<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[current_count]
+            &[txn_count.count]
         ],
         bump
     )]
@@ -458,7 +454,6 @@ pub struct DirectTransferWrapped<'info> {
     pid: Pubkey,
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
-    current_count: u8,
     sender: [u8; 32],
 )]
 pub struct CreateTransactionReceiver<'info> {
@@ -474,7 +469,7 @@ pub struct CreateTransactionReceiver<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[current_count]
+            &[txn_count.count]
         ],
         bump
     )]
