@@ -543,7 +543,7 @@ pub struct StoreMsg<'info>{
     #[account(
         init_if_needed,
         payer = payer, 
-        space = 8 + 4,
+        space = 8 + 1,
         seeds = [
             b"txn_count".as_ref(),
             &sender,
