@@ -147,7 +147,6 @@ pub mod solana_project {
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
         tx.accounts = accs.clone();
-        tx.did_execute = false;
         tx.data = data.clone();
 
         let count_stored = ctx.accounts.txn_count.count;
@@ -188,10 +187,6 @@ pub mod solana_project {
             MessengerError::AmountMismatch
         );
 
-        //execute txn
-        if ctx.accounts.transaction.did_execute {
-            return Err(MessengerError::AlreadyExecuted.into());
-        }
         // Burn the transaction to ensure one time use.
         ctx.accounts.transaction.did_execute = true;
 
@@ -329,7 +324,6 @@ pub mod solana_project {
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
         tx.accounts = accs.clone();
-        tx.did_execute = false;
         tx.data = data.clone();
 
         let count_stored = ctx.accounts.txn_count.count;
@@ -396,10 +390,6 @@ pub mod solana_project {
             MessengerError::EndTimeMismatch
         );
 
-        //execute txn
-        if ctx.accounts.transaction.did_execute {
-            return Err(MessengerError::AlreadyExecuted.into());
-        }
         // Burn the transaction to ensure one time use.
         ctx.accounts.transaction.did_execute = true;
 
@@ -444,7 +434,6 @@ pub mod solana_project {
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
         tx.accounts = accs.clone();
-        tx.did_execute = false;
         tx.data = data;
 
         let count_stored = ctx.accounts.txn_count.count;
@@ -487,11 +476,6 @@ pub mod solana_project {
             MessengerError::ReceiverDerivedKeyMismatch
         );
 
-        //check data params passed (no params passed)
-        // execute txn
-        if ctx.accounts.transaction.did_execute {
-            return Err(MessengerError::AlreadyExecuted.into());
-        }
         // Burn the transaction to ensure one time use.
         ctx.accounts.transaction.did_execute = true;
 
