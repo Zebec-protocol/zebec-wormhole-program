@@ -82,19 +82,6 @@ pub struct StreamUpdate {
     pub amount: u64,
 }
 
-#[account]
-pub struct Receipt {
-    pub amt_to_mint: u64,
-    pub foreign_recipient: [u8; 32],
-    pub foreign_chain: u16,
-    pub claimed: bool,
-}
-
-#[account]
-pub struct MintInfo {
-    pub mint: Pubkey,
-}
-
 impl From<&Transaction> for Instruction {
     fn from(tx: &Transaction) -> Instruction {
         Instruction {
