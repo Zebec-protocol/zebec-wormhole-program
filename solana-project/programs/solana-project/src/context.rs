@@ -17,7 +17,7 @@ pub struct Initialize<'info> {
         seeds=[b"config".as_ref()],
         payer=owner,
         bump,
-        space=8+32+8+1
+        space=8+32+4
     )]
     pub config: Account<'info, Config>,
     #[account(mut)]
