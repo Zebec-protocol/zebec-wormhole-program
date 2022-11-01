@@ -1229,7 +1229,7 @@ pub fn serialize_vaa(vaa: &MessageData) -> Vec<u8> {
     let mut v = Cursor::new(Vec::new());
     v.write_u32::<BigEndian>(vaa.vaa_time).unwrap();
     v.write_u32::<BigEndian>(vaa.nonce).unwrap();
-    v.write_u16::<BigEndian>(vaa.emitter_chain.clone() as u16)
+    v.write_u16::<BigEndian>(vaa.emitter_chain as u16)
         .unwrap();
     v.write_all(&vaa.emitter_address).unwrap();
     v.write_u64::<BigEndian>(vaa.sequence).unwrap();
