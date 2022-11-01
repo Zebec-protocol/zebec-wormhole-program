@@ -1,13 +1,10 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::Token;
 use anchor_spl::token::TokenAccount;
-// use anchor_lang::solana_program::keccak::Hash;
 use crate::constants::*;
 use crate::portal::TokenPortalBridge;
-// use crate::instruction;
 use crate::state::*;
 use std::str::FromStr;
-use anchor_lang::solana_program::sysvar::{rent, clock};
 use crate::wormhole::*;
 use hex::decode;
 

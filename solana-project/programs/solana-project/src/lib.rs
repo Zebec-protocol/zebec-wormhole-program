@@ -1,9 +1,6 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::borsh::try_from_slice_unchecked;
 use anchor_lang::solana_program::instruction::Instruction;
-use anchor_lang::solana_program::system_instruction::transfer;
-// use anchor_lang::solana_program::keccak::hashv;
-// use anchor_lang::solana_program::keccak::Hash;
+
 use anchor_lang::solana_program;
 use anchor_spl::token::{approve, Approve};
 
@@ -469,11 +466,6 @@ pub mod solana_project {
             count_stored == current_count,
             MessengerError::CountMismatch
         );
-
-        //check Mint passed
-        // TODO: will be added in the later version of zebec contract
-        // let mint_pubkey_passed: Pubkey = accs[4].pubkey;
-        // require!(mint_pubkey_passed == ctx.accounts.data_storage.token_mint, MessengerError::MintKeyMismatch);
 
         //check data account
         let data_account_passed: Pubkey = accs[2].pubkey;

@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
-// use anchor_lang::solana_program::keccak::Hash;
 use borsh::{BorshDeserialize, BorshSerialize};
 
 #[account]
@@ -37,8 +36,6 @@ pub struct Transaction {
 #[account]
 // TODO: can_update and cancel are bools
 pub struct TransactionData {
-    // pub transaction_hash: [u8; 32],
-    // (4+32*1) * 3 + 8 + 32 + 8 + 8 + 8 + 1 + 1= 8 + 174
     pub sender: Vec<u8>,
     pub receiver: Vec<u8>,
     pub data_account: Pubkey,
