@@ -11,6 +11,9 @@ pub enum MessengerError {
     #[msg("The given transaction has already been executed.")]
     AlreadyExecuted,
 
+    #[msg("Invalid CPI")]
+    InvalidCPI,
+
     #[msg("Invalid Caller")]
     InvalidCaller,
 

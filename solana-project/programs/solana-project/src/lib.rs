@@ -7,6 +7,8 @@ use anchor_spl::token::{approve, Approve};
 use primitive_types::U256;
 use sha3::Digest;
 
+use std::collections::BTreeMap;
+
 use byteorder::{BigEndian, WriteBytesExt};
 use hex::decode;
 use std::io::{Cursor, Write};
@@ -189,29 +191,17 @@ pub mod solana_project {
 
         // Burn the transaction to ensure one time use.
         ctx.accounts.transaction.did_execute = true;
-
-        // Execute the transaction signed by the pdasender/pdareceiver.
-        let mut ix: Instruction = (*ctx.accounts.transaction).deref().into();
-        ix.accounts = ix
-            .accounts
-            .iter()
-            .map(|acc| {
-                let mut acc = acc.clone();
-                if &acc.pubkey == ctx.accounts.pda_signer.key {
-                    acc.is_signer = true;
-                }
-                acc
-            })
-            .collect();
-
-        let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
-        let seeds: &[&[_]] = &[&sender, &chain_id, bump.as_ref()];
-        let signer = &[&seeds[..]];
-        let accounts = ctx.remaining_accounts;
-
-        msg!("Transaction Execute");
-
-        solana_program::program::invoke_signed(&ix, accounts, signer)?;
+        require!(
+            perform_cpi(
+                chain_id.clone(), 
+                ctx.accounts.pda_signer.to_account_info().key().to_bytes(), 
+                *ctx.accounts.transaction.clone(), 
+                ctx.accounts.pda_signer.clone(), 
+                ctx.bumps, 
+                ctx.remaining_accounts
+            ).is_ok(),
+            MessengerError::InvalidCPI
+        );        
         emit!(Deposited{
             sender: sender, 
             current_count: count_stored
@@ -389,31 +379,19 @@ pub mod solana_project {
             decode_data.end_time == ctx.accounts.data_storage.end_time,
             MessengerError::EndTimeMismatch
         );
-
         // Burn the transaction to ensure one time use.
         ctx.accounts.transaction.did_execute = true;
-
-        // Execute the transaction signed by the pdasender/pdareceiver.
-        let mut ix: Instruction = (*ctx.accounts.transaction).deref().into();
-        ix.accounts = ix
-            .accounts
-            .iter()
-            .map(|acc| {
-                let mut acc = acc.clone();
-                if &acc.pubkey == ctx.accounts.pda_signer.key {
-                    acc.is_signer = true;
-                }
-                acc
-            })
-            .collect();
-
-        let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
-        let seeds: &[&[_]] = &[&sender, &chain_id, bump.as_ref()];
-        let signer = &[&seeds[..]];
-        let accounts = ctx.remaining_accounts;
-
-        solana_program::program::invoke_signed(&ix, accounts, signer)?;
-        
+        require!(
+            perform_cpi(
+                chain_id.clone(), 
+                ctx.accounts.pda_signer.to_account_info().key().to_bytes(), 
+                *ctx.accounts.transaction.clone(), 
+                ctx.accounts.pda_signer.clone(), 
+                ctx.bumps, 
+                ctx.remaining_accounts
+            ).is_ok(),
+            MessengerError::InvalidCPI
+        );        
         emit!(StreamUpdated{
             sender: sender,
             current_count: count_stored
@@ -475,33 +453,19 @@ pub mod solana_project {
             pda_receiver_passed == receiver_derived_pubkey.0,
             MessengerError::ReceiverDerivedKeyMismatch
         );
-
         // Burn the transaction to ensure one time use.
         ctx.accounts.transaction.did_execute = true;
-
-        // Execute the transaction signed by the pdasender/pdareceiver.
-        let mut ix: Instruction = (*ctx.accounts.transaction).deref().into();
-        ix.accounts = ix
-            .accounts
-            .iter()
-            .map(|acc| {
-                let mut acc = acc.clone();
-                if &acc.pubkey == ctx.accounts.pda_signer.key {
-                    acc.is_signer = true;
-                }
-                acc
-            })
-            .collect();
-
-        let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
-        let seeds: &[&[_]] = &[&sender, &chain_id, bump.as_ref()];
-        let signer = &[&seeds[..]];
-        let accounts = ctx.remaining_accounts;
-
-        msg!("Transaction Execute");
-
-        solana_program::program::invoke_signed(&ix, accounts, signer)?;
-        
+        require!(
+            perform_cpi(
+                chain_id.clone(), 
+                ctx.accounts.pda_signer.to_account_info().key().to_bytes(), 
+                *ctx.accounts.transaction.clone(), 
+                ctx.accounts.pda_signer.clone(), 
+                ctx.bumps, 
+                ctx.remaining_accounts
+            ).is_ok(),
+            MessengerError::InvalidCPI
+        );        
         emit!(PausedResumed{
             sender: sender,
             current_count: count_stored
@@ -896,29 +860,17 @@ pub mod solana_project {
         
         // Burn the transaction to ensure one time use.
         ctx.accounts.transaction.did_execute = true;
-
-        // Execute the transaction signed by the pdasender/pdareceiver.
-        let mut ix: Instruction = (*ctx.accounts.transaction).deref().into();
-        ix.accounts = ix
-            .accounts
-            .iter()
-            .map(|acc| {
-                let mut acc = acc.clone();
-                if &acc.pubkey == ctx.accounts.pda_signer.key {
-                    acc.is_signer = true;
-                }
-                acc
-            })
-            .collect();
-
-        let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
-        let seeds: &[&[_]] = &[&eth_add, &from_chain_id, bump.as_ref()];
-        let signer = &[&seeds[..]];
-        let accounts = ctx.remaining_accounts;
-
-        msg!("Transaction Execute");
-
-        solana_program::program::invoke_signed(&ix, accounts, signer)?;
+        require!(
+            perform_cpi(
+                from_chain_id.clone(), 
+                ctx.accounts.pda_signer.to_account_info().key().to_bytes(), 
+                *ctx.accounts.transaction.clone(), 
+                ctx.accounts.pda_signer.clone(), 
+                ctx.bumps, 
+                ctx.remaining_accounts
+            ).is_ok(),
+            MessengerError::InvalidCPI
+        );
 
         emit!(ExecutedTransaction{
             from_chain_id: from_chain_id,
@@ -1321,4 +1273,37 @@ fn process_direct_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Contex
     transaction_data.from_chain_id = from_chain_id as u64;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.amount = amount;
+}
+
+
+fn perform_cpi(
+    chain_id: Vec<u8>,
+    sender: [u8; 32],
+    transaction: Account<Transaction>,
+    pda_signer: UncheckedAccount,
+    bumps: BTreeMap<String, u8>,
+    remaining_accounts: &[AccountInfo]
+) -> std::result::Result<(), anchor_lang::prelude::ProgramError>
+{
+    // Execute the transaction signed by the pdasender/pdareceiver.
+    let mut ix: Instruction = (transaction).deref().into();
+    ix.accounts = ix
+        .accounts
+        .iter()
+        .map(|acc| {
+            let mut acc = acc.clone();
+            if &acc.pubkey == pda_signer.key {
+                acc.is_signer = true;
+            }
+            acc
+        })
+        .collect();
+
+    let bump = bumps.get("pda_signer").unwrap().to_le_bytes();
+    let seeds: &[&[_]] = &[&sender, &chain_id, bump.as_ref()];
+    let signer = &[&seeds[..]];
+    let accounts = remaining_accounts;
+
+    solana_program::program::invoke_signed(&ix, accounts, signer)
+        
 }
