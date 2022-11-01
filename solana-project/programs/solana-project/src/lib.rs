@@ -899,11 +899,8 @@ pub mod solana_project {
         ctx: Context<DirectTransferWrapped>,
         sender: [u8; 32],
         sender_chain: Vec<u8>,
-        token_address: Vec<u8>,
-        token_chain: u16,
         current_count: u8,
         target_chain: u16,
-        amount: u64,
         fee: u64,
     ) -> Result<()> {
         let count_stored = ctx.accounts.txn_count.count;
