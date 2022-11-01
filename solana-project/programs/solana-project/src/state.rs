@@ -85,7 +85,7 @@ pub struct StreamUpdate {
 #[account]
 pub struct Receipt {
     pub amt_to_mint: u64,
-    pub foreign_receipient: [u8; 32],
+    pub foreign_recipient: [u8; 32],
     pub foreign_chain: u16,
     pub claimed: bool,
 }
