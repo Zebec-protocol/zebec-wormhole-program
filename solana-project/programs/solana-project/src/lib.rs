@@ -20,6 +20,7 @@ mod errors;
 mod portal;
 mod state;
 mod wormhole;
+mod events;
 
 use constants::*;
 use context::*;
@@ -27,6 +28,7 @@ use errors::*;
 use portal::*;
 use state::*;
 use wormhole::*;
+use events::*;
 
 use std::ops::Deref;
 
@@ -42,6 +44,11 @@ pub mod solana_project {
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         ctx.accounts.config.owner = ctx.accounts.owner.key();
         ctx.accounts.config.nonce = 1;
+        
+        emit!(Initialized{
+            owner: ctx.accounts.config.owner,
+            nonce: ctx.accounts.config.nonce
+        });
         Ok(())
     }
 
@@ -53,79 +60,12 @@ pub mod solana_project {
         require!( emitter_addr.len() == EVM_CHAIN_ADDRESS_LENGTH, MessengerError::InvalidEmitterAddress);
         
         ctx.accounts.emitter_acc.chain_id = chain_id;
-        ctx.accounts.emitter_acc.emitter_addr = emitter_addr;
-        Ok(())
-    }
-
-    pub fn send_msg(ctx: Context<SendMsg>, msg: String) -> Result<()> {
-        //Look Up Fee
-        let bridge_data: BridgeData =
-            try_from_slice_unchecked(&ctx.accounts.wormhole_config.data.borrow_mut())?;
-
-        //Send Fee
-        invoke_signed(
-            &transfer(
-                &ctx.accounts.payer.key(),
-                &ctx.accounts.wormhole_fee_collector.key(),
-                bridge_data.config.fee,
-            ),
-            &[
-                ctx.accounts.payer.to_account_info(),
-                ctx.accounts.wormhole_fee_collector.to_account_info(),
-            ],
-            &[],
-        )?;
-
-        //Send Post Msg Tx
-        let sendmsg_ix = Instruction {
-            program_id: ctx.accounts.core_bridge.key(),
-            accounts: vec![
-                AccountMeta::new(ctx.accounts.wormhole_config.key(), false),
-                AccountMeta::new(ctx.accounts.wormhole_message_key.key(), true),
-                AccountMeta::new_readonly(ctx.accounts.wormhole_derived_emitter.key(), true),
-                AccountMeta::new(ctx.accounts.wormhole_sequence.key(), false),
-                AccountMeta::new(ctx.accounts.payer.key(), true),
-                AccountMeta::new(ctx.accounts.wormhole_fee_collector.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.clock.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.rent.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
-            ],
-            data: (
-                wormhole::Instruction::PostMessage,
-                PostMessageData {
-                    nonce: ctx.accounts.config.nonce,
-                    payload: msg.as_bytes().try_to_vec()?,
-                    consistency_level: wormhole::ConsistencyLevel::Confirmed,
-                },
-            )
-                .try_to_vec()?,
-        };
-
-        invoke_signed(
-            &sendmsg_ix,
-            &[
-                ctx.accounts.wormhole_config.to_account_info(),
-                ctx.accounts.wormhole_message_key.to_account_info(),
-                ctx.accounts.wormhole_derived_emitter.to_account_info(),
-                ctx.accounts.wormhole_sequence.to_account_info(),
-                ctx.accounts.payer.to_account_info(),
-                ctx.accounts.wormhole_fee_collector.to_account_info(),
-                ctx.accounts.clock.to_account_info(),
-                ctx.accounts.rent.to_account_info(),
-                ctx.accounts.system_program.to_account_info(),
-            ],
-            &[&[
-                b"emitter".as_ref(),
-                &[*ctx.bumps.get("wormhole_derived_emitter").unwrap()],
-            ]],
-        )?;
-
-        let sum = ctx.accounts.config.nonce.checked_add(1);
-        match sum {
-            None => return Err(MessengerError::Overflow.into()),
-            Some (val) => ctx.accounts.config.nonce = val,
-        }
-
+        ctx.accounts.emitter_acc.emitter_addr = emitter_addr.clone();
+        
+        emit!(RegisteredChain{
+            chain_id: chain_id,
+            emitter_addr: emitter_addr
+        });
         Ok(())
     }
 
@@ -188,6 +128,12 @@ pub mod solana_project {
             17 => process_direct_transfer(encoded_str, vaa.emitter_chain, ctx),
             _ => return err!(MessengerError::InvalidPayload),
         }
+
+        emit!(StoredMsg{
+            msg_type: code,
+            sender: sender,
+            count: current_count
+        });
         Ok(())
     }
 
@@ -278,6 +224,10 @@ pub mod solana_project {
         msg!("Transaction Execute");
 
         solana_program::program::invoke_signed(&ix, accounts, signer)?;
+        emit!(Deposited{
+            sender: sender, 
+            current_count: current_count
+        });
         Ok(())
     }
 
@@ -370,6 +320,10 @@ pub mod solana_project {
             MessengerError::CanUpdateMismatch
         );
 
+        emit!(StreamCreated{
+            sender: sender, 
+            current_count: current_count,
+        });
         Ok(())
     }
 
@@ -484,9 +438,12 @@ pub mod solana_project {
         let signer = &[&seeds[..]];
         let accounts = ctx.remaining_accounts;
 
-        msg!("Transaction Execute");
-
         solana_program::program::invoke_signed(&ix, accounts, signer)?;
+        
+        emit!(StreamUpdated{
+            sender: sender,
+            current_count: current_count
+        });            
         Ok(())
     }
 
@@ -586,6 +543,11 @@ pub mod solana_project {
         msg!("Transaction Execute");
 
         solana_program::program::invoke_signed(&ix, accounts, signer)?;
+        
+        emit!(PausedResumed{
+            sender: sender,
+            current_count: current_count
+        });
         Ok(())
     }
 
@@ -660,7 +622,10 @@ pub mod solana_project {
             MessengerError::ReceiverDerivedKeyMismatch
         );
 
-        //check data params passed
+        emit!(ReceiverWithdrawCreated{
+            sender: sender, 
+            current_count: current_count,
+        });
         Ok(())
     }
 
@@ -731,7 +696,10 @@ pub mod solana_project {
             MessengerError::ReceiverDerivedKeyMismatch
         );
 
-        //check data params passed
+        emit!(CancelCreated{
+            sender: sender, 
+            current_count: current_count, 
+        });
         Ok(())
     }
 
@@ -788,6 +756,10 @@ pub mod solana_project {
             MessengerError::AmountMismatch
         );
 
+        emit!(SenderWithdrawCreated{
+            sender: sender,
+            current_count: current_count
+        });
         Ok(())
     }
 
@@ -859,7 +831,11 @@ pub mod solana_project {
             decode_data.amount == ctx.accounts.data_storage.amount,
             MessengerError::AmountMismatch
         );
-
+        
+        emit!(InstantTransferCreated{
+            sender: sender,
+            current_count: current_count,
+        });
         Ok(())
     }
 
@@ -900,9 +876,22 @@ pub mod solana_project {
             MessengerError::SenderDerivedKeyMismatch
         );
 
-        msg!("Transaction Direct Transfer Native");
+        emit!(DirectTransferredNative{
+            sender: sender,
+            sender_chain: chain_id.clone(),
+            target_chain: target_chain,
+            receiver: receiver_stored.clone(),
+            current_count: current_count,
+        });
 
-        transfer_native(ctx, sender, chain_id, target_chain, fee, receiver_stored)
+        transfer_native(
+            ctx, 
+            sender, 
+            chain_id, 
+            target_chain, 
+            fee, 
+            receiver_stored, 
+        )
     }
 
     //create and execute direct transfer wrapped
@@ -945,7 +934,13 @@ pub mod solana_project {
             MessengerError::SenderDerivedKeyMismatch
         );
 
-        msg!("Transaction Direct Transfer Wrapped");
+        emit!(DirectTransferredWrapped{
+            sender: sender,
+            sender_chain: sender_chain.clone(),
+            target_chain: target_chain,
+            receiver: receiver_stored.clone(),
+            current_count: current_count,
+        });
 
         transfer_wrapped(
             ctx,
@@ -992,6 +987,11 @@ pub mod solana_project {
 
         solana_program::program::invoke_signed(&ix, accounts, signer)?;
 
+        emit!(ExecutedTransaction{
+            from_chain_id: from_chain_id,
+            eth_add: eth_add,
+            transaction: ctx.accounts.transaction.to_account_info().key(),
+        });
         Ok(())
     }
 
@@ -1107,7 +1107,6 @@ pub mod solana_project {
         sender_chain: Vec<u8>,
         target_chain: u16,
         fee: u64,
-
         receiver: Vec<u8>,
     ) -> Result<()> {
         let amount = ctx.accounts.data_storage.amount;
