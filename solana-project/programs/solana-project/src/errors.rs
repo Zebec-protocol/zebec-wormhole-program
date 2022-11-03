@@ -8,6 +8,9 @@ pub enum MessengerError {
     #[msg("Posted VAA Emitter Chain ID or Address Mismatch")]
     VAAEmitterMismatch,
 
+    #[msg("Sender Wallet Mismatch")]
+    InvalidSenderWallet,
+    
     #[msg("The given transaction has already been executed.")]
     AlreadyExecuted,
 

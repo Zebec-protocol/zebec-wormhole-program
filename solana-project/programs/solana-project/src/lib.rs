@@ -113,27 +113,25 @@ pub mod solana_project {
             MessengerError::CountMismatch
         );
 
-        // Switch Based on the code
-        //TODO: return error if otherwise
-        match code {
-            2 => process_stream(encoded_str, vaa.emitter_chain, ctx),
-            4 => process_withdraw_stream(encoded_str, vaa.emitter_chain, ctx),
-            6 => process_deposit(encoded_str, vaa.emitter_chain, ctx),
-            8 => process_pause(encoded_str, vaa.emitter_chain, ctx),
-            10 => process_withdraw(encoded_str, vaa.emitter_chain, ctx),
-            12 => process_instant_transfer(encoded_str, vaa.emitter_chain, ctx),
-            14 => process_update_stream(encoded_str, vaa.emitter_chain, ctx),
-            16 => process_cancel_stream(encoded_str, vaa.emitter_chain, ctx),
-            17 => process_direct_transfer(encoded_str, vaa.emitter_chain, ctx),
-            _ => return err!(MessengerError::InvalidPayload),
-        }
-
         emit!(StoredMsg{
             msg_type: code,
             sender: sender,
             count: current_count
         });
-        Ok(())
+
+        // Switch Based on the code
+        match code {
+            2 => process_stream(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
+            4 => process_withdraw_stream(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
+            6 => process_deposit(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
+            8 => process_pause(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
+            10 => process_withdraw(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
+            12 => process_instant_transfer(encoded_str, vaa.emitter_chain, ctx,sender.to_vec()),
+            14 => process_update_stream(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
+            16 => process_cancel_stream(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
+            17 => process_direct_transfer(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
+            _ => return Err(MessengerError::InvalidPayload.into())
+        }
     }
 
     //creates and executes deposit transaction
@@ -1123,7 +1121,7 @@ pub fn serialize_vaa(vaa: &MessageData) -> Vec<u8> {
     v.into_inner()
 }
 
-fn process_deposit(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
+fn process_deposit(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
@@ -1132,12 +1130,16 @@ fn process_deposit(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreM
     let token_mint_bytes = &encoded_str[73..105].to_vec();
 
     transaction_data.amount = amount;
-    transaction_data.sender = senderbytes;
+    transaction_data.sender = senderbytes.clone();
     transaction_data.from_chain_id = from_chain_id as u64;
     transaction_data.token_mint = Pubkey::new(&token_mint_bytes);
+
+    require!(senderbytes == sender, MessengerError::InvalidSenderWallet);
+    Ok(())
+
 }
 
-fn process_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
+fn process_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()>{
     let transaction_data = &mut ctx.accounts.data_storage;
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
@@ -1149,20 +1151,25 @@ fn process_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMs
     let can_cancel = get_u64(encoded_str[129..137].to_vec());
     let token_mint_bytes = &encoded_str[137..169].to_vec();
 
+    
     transaction_data.start_time = start_time;
     transaction_data.end_time = end_time;
-
+    
     transaction_data.can_update = can_update == 1;
     transaction_data.can_cancel = can_cancel == 1;
-
+    
     transaction_data.amount = amount;
-    transaction_data.sender = senderwallet_bytes;
+    transaction_data.sender = senderwallet_bytes.clone();
     transaction_data.receiver = receiver_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id as u64;
     transaction_data.token_mint = Pubkey::new(&token_mint_bytes);
+    
+    require!(senderwallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    Ok(())
+
 }
 
-fn process_update_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
+fn process_update_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
@@ -1176,14 +1183,17 @@ fn process_update_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<
     transaction_data.start_time = start_time;
     transaction_data.end_time = end_time;
     transaction_data.amount = amount;
-    transaction_data.sender = senderwallet_bytes;
+    transaction_data.sender = senderwallet_bytes.clone();
     transaction_data.receiver = receiver_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id as u64;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
+
+    require!(senderwallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    Ok(())
 }
 
-fn process_pause(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
+fn process_pause(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let _to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let depositor_wallet_bytes = encoded_str[33..65].to_vec();
@@ -1191,15 +1201,18 @@ fn process_pause(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg
     let receiver_wallet_bytes = encoded_str[97..129].to_vec();
     let data_account = encoded_str[129..161].to_vec();
 
-    transaction_data.sender = depositor_wallet_bytes;
+    transaction_data.sender = depositor_wallet_bytes.clone();
     transaction_data.receiver = receiver_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id as u64;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
+
+    require!(depositor_wallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    Ok(())
 }
 
 //receiver will withdraw streamed tokens (receiver == withdrawer)
-fn process_withdraw_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
+fn process_withdraw_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let _to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let withdrawer_wallet_bytes = encoded_str[33..65].to_vec();
@@ -1207,14 +1220,17 @@ fn process_withdraw_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Contex
     let depositor_wallet_bytes = encoded_str[97..129].to_vec();
     let data_account = encoded_str[129..161].to_vec();
 
-    transaction_data.sender = depositor_wallet_bytes;
+    transaction_data.sender = depositor_wallet_bytes.clone();
     transaction_data.receiver = withdrawer_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id as u64;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
+
+    require!(depositor_wallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    Ok(())
 }
 
-fn process_cancel_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
+fn process_cancel_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let _to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let depositor_wallet_bytes = encoded_str[33..65].to_vec();
@@ -1222,28 +1238,34 @@ fn process_cancel_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<
     let receiver_wallet_bytes = encoded_str[97..129].to_vec();
     let data_account = encoded_str[129..161].to_vec();
 
-    transaction_data.sender = depositor_wallet_bytes;
+    transaction_data.sender = depositor_wallet_bytes.clone();
     transaction_data.receiver = receiver_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id as u64;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
+
+    require!(depositor_wallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    Ok(())
 }
 
 //sender will withdraw deposited token
-fn process_withdraw(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
+fn process_withdraw(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let amount = get_u64(encoded_str[1..9].to_vec());
     let _to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let withdrawer_wallet_bytes = encoded_str[41..73].to_vec();
     let token_mint = encoded_str[73..105].to_vec();
 
-    transaction_data.sender = withdrawer_wallet_bytes;
+    transaction_data.sender = withdrawer_wallet_bytes.clone();
     transaction_data.from_chain_id = from_chain_id as u64;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.amount = amount;
+
+    require!(withdrawer_wallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    Ok(())
 }
 
-fn process_instant_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
+fn process_instant_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
@@ -1252,14 +1274,17 @@ fn process_instant_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Conte
     let token_mint = encoded_str[73..105].to_vec();
     let withdrawer_wallet_bytes = encoded_str[105..137].to_vec();
 
-    transaction_data.sender = senderwallet_bytes;
+    transaction_data.sender = senderwallet_bytes.clone();
     transaction_data.receiver = withdrawer_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id as u64;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.amount = amount;
+
+    require!(senderwallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    Ok(())
 }
 
-fn process_direct_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>) {
+fn process_direct_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
@@ -1268,11 +1293,14 @@ fn process_direct_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Contex
     let token_mint = encoded_str[73..105].to_vec();
     let withdrawer_wallet_bytes = encoded_str[105..137].to_vec();
 
-    transaction_data.sender = senderwallet_bytes;
+    transaction_data.sender = senderwallet_bytes.clone();
     transaction_data.receiver = withdrawer_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id as u64;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.amount = amount;
+
+    require!(senderwallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    Ok(())
 }
 
 
