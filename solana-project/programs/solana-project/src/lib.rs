@@ -192,7 +192,7 @@ pub mod solana_project {
         require!(
             perform_cpi(
                 chain_id.clone(), 
-                ctx.accounts.pda_signer.to_account_info().key().to_bytes(), 
+                sender.clone(), 
                 *ctx.accounts.transaction.clone(), 
                 ctx.accounts.pda_signer.clone(), 
                 ctx.bumps, 
@@ -382,7 +382,7 @@ pub mod solana_project {
         require!(
             perform_cpi(
                 chain_id.clone(), 
-                ctx.accounts.pda_signer.to_account_info().key().to_bytes(), 
+                sender.clone(), 
                 *ctx.accounts.transaction.clone(), 
                 ctx.accounts.pda_signer.clone(), 
                 ctx.bumps, 
@@ -456,7 +456,7 @@ pub mod solana_project {
         require!(
             perform_cpi(
                 chain_id.clone(), 
-                ctx.accounts.pda_signer.to_account_info().key().to_bytes(), 
+                sender.clone(), 
                 *ctx.accounts.transaction.clone(), 
                 ctx.accounts.pda_signer.clone(), 
                 ctx.bumps, 
@@ -850,7 +850,7 @@ pub mod solana_project {
     pub fn execute_transaction(
         ctx: Context<ExecuteTransaction>,
         from_chain_id: Vec<u8>,
-        eth_add: Vec<u8>,
+        eth_add: [u8; 32],
     ) -> Result<()> {
         // params if passed incorrecrtly the signature will not work and the txn will panic.
         // Has this been executed already?
@@ -861,7 +861,7 @@ pub mod solana_project {
         require!(
             perform_cpi(
                 from_chain_id.clone(), 
-                ctx.accounts.pda_signer.to_account_info().key().to_bytes(), 
+                eth_add.clone(), 
                 *ctx.accounts.transaction.clone(), 
                 ctx.accounts.pda_signer.clone(), 
                 ctx.bumps, 

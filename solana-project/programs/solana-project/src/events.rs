@@ -88,6 +88,6 @@ pub struct ReceiverWithdrawCreated{
 #[event]
 pub struct ExecutedTransaction{
     pub from_chain_id:  Vec<u8>,
-    pub eth_add:  Vec<u8>,
+    pub eth_add:  [u8; 32],
     pub transaction: Pubkey
 }
