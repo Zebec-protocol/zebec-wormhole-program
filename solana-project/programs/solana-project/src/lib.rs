@@ -213,7 +213,7 @@ pub mod solana_project {
 
         sender: [u8; 32],
     ) -> Result<()> {
-        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
+        require!(!ctx.accounts.txn_status.executed, MessengerError::TransactionAlreadyCreated);
 
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -306,7 +306,6 @@ pub mod solana_project {
         chain_id: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
-        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
 
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -406,7 +405,6 @@ pub mod solana_project {
         chain_id: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
-        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
 
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -482,7 +480,7 @@ pub mod solana_project {
         data: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
-        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
+        require!(!ctx.accounts.txn_status.executed, MessengerError::TransactionAlreadyCreated);
 
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -556,7 +554,7 @@ pub mod solana_project {
         data: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
-        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
+        require!(!ctx.accounts.txn_status.executed, MessengerError::TransactionAlreadyCreated);
 
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -628,7 +626,7 @@ pub mod solana_project {
 
         sender: [u8; 32],
     ) -> Result<()> {
-        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
+        require!(!ctx.accounts.txn_status.executed, MessengerError::TransactionAlreadyCreated);
 
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -685,7 +683,7 @@ pub mod solana_project {
         data: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
-        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
+        require!(!ctx.accounts.txn_status.executed, MessengerError::TransactionAlreadyCreated);
 
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
@@ -862,6 +860,10 @@ pub mod solana_project {
         from_chain_id: Vec<u8>,
         eth_add: [u8; 32],
     ) -> Result<()> {
+        require!(!ctx.accounts.txn_status.executed, MessengerError::TransactionAlreadyExecuted);
+        let transaction_status = &mut ctx.accounts.txn_status;
+        transaction_status.executed = true;
+        
         // params if passed incorrecrtly the signature will not work and the txn will panic.
         // Has this been executed already?
         require!(!ctx.accounts.transaction.did_execute, MessengerError::AlreadyExecuted);

@@ -596,7 +596,7 @@ pub struct StoreMsg<'info>{
     #[account(
         init, 
         payer = payer,
-        space = 8 + 1,
+        space = 8 + 1 + 1,
         seeds = [
             b"txn_status".as_ref(),
             &sender,
@@ -610,9 +610,11 @@ pub struct StoreMsg<'info>{
 #[derive(Accounts)]
 #[instruction(  
     from_chain_id: Vec<u8>,
-    eth_add: Vec<u8>
+    eth_add: Vec<u8>,
+    current_count: u8
 )]
 pub struct ExecuteTransaction<'info> {
+    pub system_program: Program<'info, System>,
     ///CHECK: seeds are checked while creating transaction,
     /// if different seeds passed the signature will not match
     #[account(
@@ -626,4 +628,15 @@ pub struct ExecuteTransaction<'info> {
     pub pda_signer: UncheckedAccount<'info>,
     #[account(mut)]
     pub transaction: Box<Account<'info, Transaction>>,
+
+    #[account(
+        mut, 
+        seeds = [
+            b"txn_status".as_ref(),
+            &eth_add,
+            &[current_count]
+        ],
+        bump
+    )]
+    pub txn_status: Account<'info, TransactionStatus>,
 }

@@ -57,8 +57,8 @@ pub struct TransactionAccount {
 
 #[account]
 pub struct TransactionStatus{
-    pub state: bool,
-}
+    pub executed: bool
+} 
 
 #[account]
 #[derive(Default)]

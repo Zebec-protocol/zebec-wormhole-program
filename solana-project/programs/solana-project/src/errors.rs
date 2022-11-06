@@ -66,5 +66,8 @@ pub enum MessengerError {
     DataAccountMismatch,
 
     #[msg("Transaction Already Created")]
-    TransactionAlreadyCreated
+    TransactionAlreadyCreated,
+
+    #[msg("Transaction Already Executed")]
+    TransactionAlreadyExecuted
 }
