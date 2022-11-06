@@ -757,8 +757,11 @@ pub mod solana_project {
         target_chain: u16,
         fee: u64,
     ) -> Result<()> {
+        require!(!ctx.accounts.txn_status.executed, MessengerError::TransactionAlreadyExecuted);
+        let transaction_status = &mut ctx.accounts.txn_status;
+        transaction_status.executed = true;
+
         let count_stored = ctx.accounts.txn_count.count;
-        
 
         require!(
             ctx.accounts.data_storage.token_mint == ctx.accounts.mint.key(),
@@ -805,20 +808,14 @@ pub mod solana_project {
         ctx: Context<DirectTransferWrapped>,
         sender: [u8; 32],
         sender_chain: Vec<u8>,
-        current_count: u8,
         target_chain: u16,
         fee: u64,
     ) -> Result<()> {
-        let count_stored = ctx.accounts.txn_count.count;
-        require!(
-            count_stored == current_count,
-            MessengerError::CountMismatch
-        );
+        require!(!ctx.accounts.txn_status.executed, MessengerError::TransactionAlreadyExecuted);
+        let transaction_status = &mut ctx.accounts.txn_status;
+        transaction_status.executed = true;
 
-        require!(
-            ctx.accounts.data_storage.token_mint == ctx.accounts.wrapped_mint.key(),
-            MessengerError::MintKeyMismatch
-        );
+        let count_stored = ctx.accounts.txn_count.count;
 
         //check sender
         let sender_stored = ctx.accounts.data_storage.sender.clone();
@@ -842,7 +839,7 @@ pub mod solana_project {
             sender_chain: sender_chain.clone(),
             target_chain: target_chain,
             receiver: receiver_stored.clone(),
-            current_count: current_count,
+            current_count: count_stored,
         });
 
         transfer_wrapped(
@@ -1224,7 +1221,7 @@ fn process_pause(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg
 }
 
 //receiver will withdraw streamed tokens (receiver == withdrawer)
-fn process_withdraw_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
+fn process_withdraw_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, receiver: Vec<u8>)->Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let _to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let withdrawer_wallet_bytes = encoded_str[33..65].to_vec();
@@ -1232,13 +1229,13 @@ fn process_withdraw_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Contex
     let depositor_wallet_bytes = encoded_str[97..129].to_vec();
     let data_account = encoded_str[129..161].to_vec();
 
-    transaction_data.sender = depositor_wallet_bytes.clone();
-    transaction_data.receiver = withdrawer_wallet_bytes;
+    transaction_data.sender = depositor_wallet_bytes;
+    transaction_data.receiver = withdrawer_wallet_bytes.clone();
     transaction_data.from_chain_id = from_chain_id as u64;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
 
-    require!(depositor_wallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    require!(withdrawer_wallet_bytes.to_vec() == receiver, MessengerError::InvalidSenderWallet);
     Ok(())
 }
 
