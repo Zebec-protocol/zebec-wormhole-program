@@ -16,35 +16,35 @@ use std::str::FromStr;
 mod constants;
 mod context;
 mod errors;
+mod events;
 mod portal;
 mod state;
 mod wormhole;
-mod events;
 
 use constants::*;
 use context::*;
 use errors::*;
+use events::*;
 use portal::*;
 use state::*;
 use wormhole::*;
-use events::*;
 
 use std::ops::Deref;
+
+use anchor_lang::solana_program::program::invoke_signed;
 
 declare_id!("GtyAQgcYTGso352pgR7T8tfESe3TGE5eUkEj9dYyrypS");
 
 #[program]
 pub mod solana_project {
 
-    use anchor_lang::solana_program::program::invoke_signed;
-
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         ctx.accounts.config.owner = ctx.accounts.owner.key();
         ctx.accounts.config.nonce = 1;
-        
-        emit!(Initialized{
+
+        emit!(Initialized {
             owner: ctx.accounts.config.owner,
             nonce: ctx.accounts.config.nonce
         });
@@ -56,12 +56,15 @@ pub mod solana_project {
         chain_id: u16,
         emitter_addr: String,
     ) -> Result<()> {
-        require!( emitter_addr.len() == EVM_CHAIN_ADDRESS_LENGTH, MessengerError::InvalidEmitterAddress);
-        
+        require!(
+            emitter_addr.len() == EVM_CHAIN_ADDRESS_LENGTH,
+            MessengerError::InvalidEmitterAddress
+        );
+
         ctx.accounts.emitter_acc.chain_id = chain_id;
         ctx.accounts.emitter_acc.emitter_addr = emitter_addr.clone();
-        
-        emit!(RegisteredChain{
+
+        emit!(RegisteredChain {
             chain_id: chain_id,
             emitter_addr: emitter_addr
         });
@@ -82,13 +85,17 @@ pub mod solana_project {
             &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
         );
 
-        require!(ctx.accounts.core_bridge_vaa.key() == vaa_key, MessengerError::VAAKeyMismatch);
-        
+        require!(
+            ctx.accounts.core_bridge_vaa.key() == vaa_key,
+            MessengerError::VAAKeyMismatch
+        );
+
         // Already checked that the SignedVaa is owned by core bridge in account constraint logic
         // Check that the emitter chain and address match up with the vaa
         require!(
-            vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id && 
-            vaa.emitter_address == &decode(&ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
+                && vaa.emitter_address
+                    == &decode(&ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
             MessengerError::VAAEmitterMismatch
         );
 
@@ -102,18 +109,15 @@ pub mod solana_project {
         let txn_count = &mut ctx.accounts.txn_count;
         let sum = txn_count.count.checked_add(1);
 
-         match sum {
+        match sum {
             None => return Err(MessengerError::Overflow.into()),
-            Some (val) => txn_count.count = val,
+            Some(val) => txn_count.count = val,
         }
 
         let count_stored = ctx.accounts.txn_count.count;
-        require!(
-            count_stored == current_count,
-            MessengerError::CountMismatch
-        );
+        require!(count_stored == current_count, MessengerError::CountMismatch);
 
-        emit!(StoredMsg{
+        emit!(StoredMsg {
             msg_type: code,
             sender: sender,
             count: current_count
@@ -126,11 +130,11 @@ pub mod solana_project {
             6 => process_deposit(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
             8 => process_pause(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
             10 => process_withdraw(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
-            12 => process_instant_transfer(encoded_str, vaa.emitter_chain, ctx,sender.to_vec()),
+            12 => process_instant_transfer(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
             14 => process_update_stream(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
             16 => process_cancel_stream(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
             17 => process_direct_transfer(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
-            _ => return Err(MessengerError::InvalidPayload.into())
+            _ => return Err(MessengerError::InvalidPayload.into()),
         }
     }
 
@@ -150,7 +154,6 @@ pub mod solana_project {
         tx.data = data.clone();
 
         let count_stored = ctx.accounts.txn_count.count;
-    
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[6].pubkey;
@@ -163,7 +166,7 @@ pub mod solana_project {
         let pda_sender_passed: Pubkey = accs[1].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
         require!(
-            sender.to_vec() == sender_stored, 
+            sender.to_vec() == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
@@ -191,17 +194,18 @@ pub mod solana_project {
         ctx.accounts.transaction.did_execute = true;
         require!(
             perform_cpi(
-                chain_id.clone(), 
-                sender.clone(), 
-                *ctx.accounts.transaction.clone(), 
-                ctx.accounts.pda_signer.clone(), 
-                ctx.bumps, 
+                chain_id.clone(),
+                sender.clone(),
+                *ctx.accounts.transaction.clone(),
+                ctx.accounts.pda_signer.clone(),
+                ctx.bumps,
                 ctx.remaining_accounts
-            ).is_ok(),
+            )
+            .is_ok(),
             MessengerError::InvalidCPI
-        );        
-        emit!(Deposited{
-            sender: sender, 
+        );
+        emit!(Deposited {
+            sender: sender,
             current_count: count_stored
         });
         Ok(())
@@ -237,7 +241,7 @@ pub mod solana_project {
         let pda_sender_passed: Pubkey = accs[5].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
         require!(
-            sender.to_vec() == sender_stored, 
+            sender.to_vec() == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
@@ -258,10 +262,8 @@ pub mod solana_project {
         //check pdaReceiver
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
-        let receiver_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
-            &[&receiver_stored, &chain_id_seed],
-            &ctx.program_id,
-        );
+        let receiver_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], &ctx.program_id);
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
             MessengerError::ReceiverDerivedKeyMismatch
@@ -292,8 +294,8 @@ pub mod solana_project {
             MessengerError::CanUpdateMismatch
         );
 
-        emit!(StreamCreated{
-            sender: sender, 
+        emit!(StreamCreated {
+            sender: sender,
             current_count: count_stored,
         });
         Ok(())
@@ -315,7 +317,7 @@ pub mod solana_project {
         tx.data = data.clone();
 
         let count_stored = ctx.accounts.txn_count.count;
-      
+
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[4].pubkey;
         require!(
@@ -333,7 +335,10 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
+        require!(
+            sender.to_vec() == sender_stored,
+            MessengerError::PdaSenderMismatch
+        );
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[3].pubkey;
@@ -352,10 +357,8 @@ pub mod solana_project {
         //check pdaReceiver
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
-        let receiver_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
-            &[&receiver_stored, &chain_id_seed],
-            ctx.program_id,
-        );
+        let receiver_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
             MessengerError::ReceiverDerivedKeyMismatch
@@ -381,19 +384,20 @@ pub mod solana_project {
         ctx.accounts.transaction.did_execute = true;
         require!(
             perform_cpi(
-                chain_id.clone(), 
-                sender.clone(), 
-                *ctx.accounts.transaction.clone(), 
-                ctx.accounts.pda_signer.clone(), 
-                ctx.bumps, 
+                chain_id.clone(),
+                sender.clone(),
+                *ctx.accounts.transaction.clone(),
+                ctx.accounts.pda_signer.clone(),
+                ctx.bumps,
                 ctx.remaining_accounts
-            ).is_ok(),
+            )
+            .is_ok(),
             MessengerError::InvalidCPI
-        );        
-        emit!(StreamUpdated{
+        );
+        emit!(StreamUpdated {
             sender: sender,
             current_count: count_stored
-        });            
+        });
         Ok(())
     }
 
@@ -413,7 +417,7 @@ pub mod solana_project {
         tx.data = data;
 
         let count_stored = ctx.accounts.txn_count.count;
-     
+
         //check data account
         let data_account_passed: Pubkey = accs[2].pubkey;
         require!(
@@ -424,7 +428,10 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[0].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
+        require!(
+            sender.to_vec() == sender_stored,
+            MessengerError::PdaSenderMismatch
+        );
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
@@ -443,10 +450,8 @@ pub mod solana_project {
         //check pdaReceiver
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
-        let receiver_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
-            &[&receiver_stored, &chain_id_seed],
-            ctx.program_id,
-        );
+        let receiver_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
             MessengerError::ReceiverDerivedKeyMismatch
@@ -455,16 +460,17 @@ pub mod solana_project {
         ctx.accounts.transaction.did_execute = true;
         require!(
             perform_cpi(
-                chain_id.clone(), 
-                sender.clone(), 
-                *ctx.accounts.transaction.clone(), 
-                ctx.accounts.pda_signer.clone(), 
-                ctx.bumps, 
+                chain_id.clone(),
+                sender.clone(),
+                *ctx.accounts.transaction.clone(),
+                ctx.accounts.pda_signer.clone(),
+                ctx.bumps,
                 ctx.remaining_accounts
-            ).is_ok(),
+            )
+            .is_ok(),
             MessengerError::InvalidCPI
-        );        
-        emit!(PausedResumed{
+        );
+        emit!(PausedResumed {
             sender: sender,
             current_count: count_stored
         });
@@ -488,7 +494,7 @@ pub mod solana_project {
         tx.data = data;
 
         let count_stored = ctx.accounts.txn_count.count;
-       
+
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[12].pubkey;
         require!(
@@ -518,27 +524,23 @@ pub mod solana_project {
         //check pdaSender
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
-        let sender_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
-            &[&sender_stored, &chain_id_seed],
-            ctx.program_id,
-        );
+        let sender_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&sender_stored, &chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::SenderDerivedKeyMismatch
         );
 
         //check pdaReceiver
-        let receiver_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
-            &[&receiver_stored, &chain_id_seed],
-            ctx.program_id,
-        );
+        let receiver_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
             MessengerError::ReceiverDerivedKeyMismatch
         );
 
-        emit!(ReceiverWithdrawCreated{
-            sender: sender, 
+        emit!(ReceiverWithdrawCreated {
+            sender: sender,
             current_count: count_stored,
         });
         Ok(())
@@ -560,7 +562,7 @@ pub mod solana_project {
         tx.data = data;
 
         let count_stored = ctx.accounts.txn_count.count;
-        
+
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[12].pubkey;
         require!(
@@ -578,7 +580,10 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
+        require!(
+            sender.to_vec() == sender_stored,
+            MessengerError::PdaSenderMismatch
+        );
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
@@ -597,18 +602,16 @@ pub mod solana_project {
         //check pdaReceiver
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
-        let receiver_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
-            &[&receiver_stored, &chain_id_seed],
-            ctx.program_id,
-        );
+        let receiver_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
             MessengerError::ReceiverDerivedKeyMismatch
         );
 
-        emit!(CancelCreated{
-            sender: sender, 
-            current_count: count_stored, 
+        emit!(CancelCreated {
+            sender: sender,
+            current_count: count_stored,
         });
         Ok(())
     }
@@ -630,7 +633,7 @@ pub mod solana_project {
         tx.data = data.clone();
 
         let count_stored = ctx.accounts.txn_count.count;
-     
+
         //check Mint passed
         let mint_pubkey_passed: Pubkey = accs[7].pubkey;
         require!(
@@ -641,7 +644,10 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
+        require!(
+            sender.to_vec() == sender_stored,
+            MessengerError::PdaSenderMismatch
+        );
 
         //check pdaSender
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
@@ -662,7 +668,7 @@ pub mod solana_project {
             MessengerError::AmountMismatch
         );
 
-        emit!(SenderWithdrawCreated{
+        emit!(SenderWithdrawCreated {
             sender: sender,
             current_count: count_stored
         });
@@ -696,7 +702,10 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
+        require!(
+            sender.to_vec() == sender_stored,
+            MessengerError::PdaSenderMismatch
+        );
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
@@ -715,10 +724,8 @@ pub mod solana_project {
         //check pdaReceiver
         let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
         let chain_id_seed = chain_id_stored.as_bytes();
-        let receiver_derived_pubkey: (Pubkey, u8) = Pubkey::find_program_address(
-            &[&receiver_stored, &chain_id_seed],
-            ctx.program_id,
-        );
+        let receiver_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
             MessengerError::ReceiverDerivedKeyMismatch
@@ -732,8 +739,8 @@ pub mod solana_project {
             decode_data.amount == ctx.accounts.data_storage.amount,
             MessengerError::AmountMismatch
         );
-        
-        emit!(InstantTransferCreated{
+
+        emit!(InstantTransferCreated {
             sender: sender,
             current_count: count_stored,
         });
@@ -745,12 +752,11 @@ pub mod solana_project {
         ctx: Context<DirectTransferNative>,
         sender: [u8; 32],
         chain_id: Vec<u8>,
-
         target_chain: u16,
         fee: u64,
     ) -> Result<()> {
-        let count_stored = ctx.accounts.txn_count.count;
-        
+        msg!("Direct Native Transfer");
+        // let count_stored = ctx.accounts.txn_count.count;
 
         require!(
             ctx.accounts.data_storage.token_mint == ctx.accounts.mint.key(),
@@ -759,7 +765,10 @@ pub mod solana_project {
 
         //check sender
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
+        require!(
+            sender.to_vec() == sender_stored,
+            MessengerError::PdaSenderMismatch
+        );
 
         //check receiver
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
@@ -774,22 +783,16 @@ pub mod solana_project {
             MessengerError::SenderDerivedKeyMismatch
         );
 
-        emit!(DirectTransferredNative{
-            sender: sender,
-            sender_chain: chain_id.clone(),
-            target_chain: target_chain,
-            receiver: receiver_stored.clone(),
-            current_count: count_stored,
-        });
+        msg!("Emitting");
+        // emit!(DirectTransferredNative {
+        //     sender: sender,
+        //     sender_chain: chain_id.clone(),
+        //     target_chain: target_chain,
+        //     receiver: receiver_stored.clone(),
+        // });
 
-        transfer_native(
-            ctx, 
-            sender, 
-            chain_id, 
-            target_chain, 
-            fee, 
-            receiver_stored, 
-        )
+        msg!("Calling transfer native");
+        transfer_native(ctx, sender, chain_id, target_chain, fee, receiver_stored)
     }
 
     //create and execute direct transfer wrapped
@@ -797,15 +800,14 @@ pub mod solana_project {
         ctx: Context<DirectTransferWrapped>,
         sender: [u8; 32],
         sender_chain: Vec<u8>,
+        token_address: Vec<u8>,
+        token_chain: u16,
         current_count: u8,
         target_chain: u16,
         fee: u64,
     ) -> Result<()> {
         let count_stored = ctx.accounts.txn_count.count;
-        require!(
-            count_stored == current_count,
-            MessengerError::CountMismatch
-        );
+        require!(count_stored == current_count, MessengerError::CountMismatch);
 
         require!(
             ctx.accounts.data_storage.token_mint == ctx.accounts.wrapped_mint.key(),
@@ -814,7 +816,10 @@ pub mod solana_project {
 
         //check sender
         let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(sender.to_vec() == sender_stored, MessengerError::PdaSenderMismatch);
+        require!(
+            sender.to_vec() == sender_stored,
+            MessengerError::PdaSenderMismatch
+        );
 
         //check receiver
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
@@ -829,7 +834,7 @@ pub mod solana_project {
             MessengerError::SenderDerivedKeyMismatch
         );
 
-        emit!(DirectTransferredWrapped{
+        emit!(DirectTransferredWrapped {
             sender: sender,
             sender_chain: sender_chain.clone(),
             target_chain: target_chain,
@@ -849,28 +854,32 @@ pub mod solana_project {
 
     pub fn execute_transaction(
         ctx: Context<ExecuteTransaction>,
-        from_chain_id: Vec<u8>,
         eth_add: [u8; 32],
+        from_chain_id: Vec<u8>,
     ) -> Result<()> {
         // params if passed incorrecrtly the signature will not work and the txn will panic.
         // Has this been executed already?
-        require!(!ctx.accounts.transaction.did_execute, MessengerError::AlreadyExecuted);
-        
+        require!(
+            !ctx.accounts.transaction.did_execute,
+            MessengerError::AlreadyExecuted
+        );
+
         // Burn the transaction to ensure one time use.
         ctx.accounts.transaction.did_execute = true;
         require!(
             perform_cpi(
-                from_chain_id.clone(), 
-                eth_add.clone(), 
-                *ctx.accounts.transaction.clone(), 
-                ctx.accounts.pda_signer.clone(), 
-                ctx.bumps, 
+                from_chain_id.clone(),
+                eth_add.clone(),
+                *ctx.accounts.transaction.clone(),
+                ctx.accounts.pda_signer.clone(),
+                ctx.bumps,
                 ctx.remaining_accounts
-            ).is_ok(),
+            )
+            .is_ok(),
             MessengerError::InvalidCPI
         );
 
-        emit!(ExecutedTransaction{
+        emit!(ExecutedTransaction {
             from_chain_id: from_chain_id,
             eth_add: eth_add,
             transaction: ctx.accounts.transaction.to_account_info().key(),
@@ -977,7 +986,7 @@ pub mod solana_project {
         let sum = ctx.accounts.config.nonce.checked_add(1);
         match sum {
             None => return Err(MessengerError::Overflow.into()),
-            Some (val) => ctx.accounts.config.nonce = val,
+            Some(val) => ctx.accounts.config.nonce = val,
         }
 
         Ok(())
@@ -992,6 +1001,7 @@ pub mod solana_project {
         fee: u64,
         receiver: Vec<u8>,
     ) -> Result<()> {
+        msg!("transfer_native");
         let amount = ctx.accounts.data_storage.amount;
         //Check EOA
         require!(
@@ -999,10 +1009,13 @@ pub mod solana_project {
             MessengerError::InvalidCaller
         );
 
+        msg!("transfer_native 0");
+
         let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
 
         let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain, &bump]];
 
+        msg!("transfer_native 1");
         let approve_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             Approve {
@@ -1013,8 +1026,12 @@ pub mod solana_project {
             signer_seeds,
         );
 
+        msg!("transfer_native 2");
+
         // Delgate transfer authority to Token Bridge for the tokens
         approve(approve_ctx, amount)?;
+
+        msg!("transfer_native 3");
 
         let target_address: [u8; 32] = receiver.as_slice().try_into().unwrap();
         // Instruction
@@ -1054,6 +1071,8 @@ pub mod solana_project {
                 .try_to_vec()?,
         };
 
+        msg!("transfer_native 4");
+
         // Accounts
         let transfer_accs = vec![
             ctx.accounts.zebec_eoa.to_account_info(),
@@ -1077,13 +1096,19 @@ pub mod solana_project {
             ctx.accounts.token_program.to_account_info(),
         ];
 
+        msg!("transfer_native 5");
+
         invoke_signed(&transfer_ix, &transfer_accs, signer_seeds)?;
+
+        msg!("transfer_native 6");
 
         let sum = ctx.accounts.config.nonce.checked_add(1);
         match sum {
             None => return Err(MessengerError::Overflow.into()),
-            Some (val) => ctx.accounts.config.nonce = val,
+            Some(val) => ctx.accounts.config.nonce = val,
         }
+
+        msg!("transfer_native 7");
 
         Ok(())
     }
@@ -1112,8 +1137,7 @@ pub fn serialize_vaa(vaa: &MessageData) -> Vec<u8> {
     let mut v = Cursor::new(Vec::new());
     v.write_u32::<BigEndian>(vaa.vaa_time).unwrap();
     v.write_u32::<BigEndian>(vaa.nonce).unwrap();
-    v.write_u16::<BigEndian>(vaa.emitter_chain as u16)
-        .unwrap();
+    v.write_u16::<BigEndian>(vaa.emitter_chain as u16).unwrap();
     v.write_all(&vaa.emitter_address).unwrap();
     v.write_u64::<BigEndian>(vaa.sequence).unwrap();
     v.write_u8(vaa.consistency_level).unwrap();
@@ -1121,7 +1145,12 @@ pub fn serialize_vaa(vaa: &MessageData) -> Vec<u8> {
     v.into_inner()
 }
 
-fn process_deposit(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
+fn process_deposit(
+    encoded_str: Vec<u8>,
+    from_chain_id: u16,
+    ctx: Context<StoreMsg>,
+    sender: Vec<u8>,
+) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
@@ -1136,10 +1165,14 @@ fn process_deposit(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreM
 
     require!(senderbytes == sender, MessengerError::InvalidSenderWallet);
     Ok(())
-
 }
 
-fn process_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()>{
+fn process_stream(
+    encoded_str: Vec<u8>,
+    from_chain_id: u16,
+    ctx: Context<StoreMsg>,
+    sender: Vec<u8>,
+) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
@@ -1151,25 +1184,31 @@ fn process_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMs
     let can_cancel = get_u64(encoded_str[129..137].to_vec());
     let token_mint_bytes = &encoded_str[137..169].to_vec();
 
-    
     transaction_data.start_time = start_time;
     transaction_data.end_time = end_time;
-    
+
     transaction_data.can_update = can_update == 1;
     transaction_data.can_cancel = can_cancel == 1;
-    
+
     transaction_data.amount = amount;
     transaction_data.sender = senderwallet_bytes.clone();
     transaction_data.receiver = receiver_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id as u64;
     transaction_data.token_mint = Pubkey::new(&token_mint_bytes);
-    
-    require!(senderwallet_bytes == sender, MessengerError::InvalidSenderWallet);
-    Ok(())
 
+    require!(
+        senderwallet_bytes == sender,
+        MessengerError::InvalidSenderWallet
+    );
+    Ok(())
 }
 
-fn process_update_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
+fn process_update_stream(
+    encoded_str: Vec<u8>,
+    from_chain_id: u16,
+    ctx: Context<StoreMsg>,
+    sender: Vec<u8>,
+) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
@@ -1189,11 +1228,19 @@ fn process_update_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
 
-    require!(senderwallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    require!(
+        senderwallet_bytes == sender,
+        MessengerError::InvalidSenderWallet
+    );
     Ok(())
 }
 
-fn process_pause(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
+fn process_pause(
+    encoded_str: Vec<u8>,
+    from_chain_id: u16,
+    ctx: Context<StoreMsg>,
+    sender: Vec<u8>,
+) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let _to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let depositor_wallet_bytes = encoded_str[33..65].to_vec();
@@ -1207,12 +1254,20 @@ fn process_pause(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
 
-    require!(depositor_wallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    require!(
+        depositor_wallet_bytes == sender,
+        MessengerError::InvalidSenderWallet
+    );
     Ok(())
 }
 
 //receiver will withdraw streamed tokens (receiver == withdrawer)
-fn process_withdraw_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
+fn process_withdraw_stream(
+    encoded_str: Vec<u8>,
+    from_chain_id: u16,
+    ctx: Context<StoreMsg>,
+    sender: Vec<u8>,
+) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let _to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let withdrawer_wallet_bytes = encoded_str[33..65].to_vec();
@@ -1221,16 +1276,24 @@ fn process_withdraw_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Contex
     let data_account = encoded_str[129..161].to_vec();
 
     transaction_data.sender = depositor_wallet_bytes.clone();
-    transaction_data.receiver = withdrawer_wallet_bytes;
+    transaction_data.receiver = withdrawer_wallet_bytes.clone();
     transaction_data.from_chain_id = from_chain_id as u64;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
 
-    require!(depositor_wallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    require!(
+        withdrawer_wallet_bytes == sender,
+        MessengerError::InvalidSenderWallet
+    );
     Ok(())
 }
 
-fn process_cancel_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
+fn process_cancel_stream(
+    encoded_str: Vec<u8>,
+    from_chain_id: u16,
+    ctx: Context<StoreMsg>,
+    sender: Vec<u8>,
+) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let _to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let depositor_wallet_bytes = encoded_str[33..65].to_vec();
@@ -1244,12 +1307,20 @@ fn process_cancel_stream(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
 
-    require!(depositor_wallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    require!(
+        depositor_wallet_bytes == sender,
+        MessengerError::InvalidSenderWallet
+    );
     Ok(())
 }
 
 //sender will withdraw deposited token
-fn process_withdraw(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
+fn process_withdraw(
+    encoded_str: Vec<u8>,
+    from_chain_id: u16,
+    ctx: Context<StoreMsg>,
+    sender: Vec<u8>,
+) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let amount = get_u64(encoded_str[1..9].to_vec());
     let _to_chain_id = get_u256(encoded_str[9..41].to_vec());
@@ -1261,11 +1332,19 @@ fn process_withdraw(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<Store
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.amount = amount;
 
-    require!(withdrawer_wallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    require!(
+        withdrawer_wallet_bytes == sender,
+        MessengerError::InvalidSenderWallet
+    );
     Ok(())
 }
 
-fn process_instant_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
+fn process_instant_transfer(
+    encoded_str: Vec<u8>,
+    from_chain_id: u16,
+    ctx: Context<StoreMsg>,
+    sender: Vec<u8>,
+) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
@@ -1280,11 +1359,19 @@ fn process_instant_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Conte
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.amount = amount;
 
-    require!(senderwallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    require!(
+        senderwallet_bytes == sender,
+        MessengerError::InvalidSenderWallet
+    );
     Ok(())
 }
 
-fn process_direct_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Context<StoreMsg>, sender: Vec<u8>)->Result<()> {
+fn process_direct_transfer(
+    encoded_str: Vec<u8>,
+    from_chain_id: u16,
+    ctx: Context<StoreMsg>,
+    sender: Vec<u8>,
+) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
@@ -1299,10 +1386,12 @@ fn process_direct_transfer(encoded_str: Vec<u8>, from_chain_id: u16, ctx: Contex
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.amount = amount;
 
-    require!(senderwallet_bytes == sender, MessengerError::InvalidSenderWallet);
+    require!(
+        senderwallet_bytes == sender,
+        MessengerError::InvalidSenderWallet
+    );
     Ok(())
 }
-
 
 fn perform_cpi(
     chain_id: Vec<u8>,
@@ -1310,9 +1399,8 @@ fn perform_cpi(
     transaction: Account<Transaction>,
     pda_signer: UncheckedAccount,
     bumps: BTreeMap<String, u8>,
-    remaining_accounts: &[AccountInfo]
-) -> std::result::Result<(), anchor_lang::prelude::ProgramError>
-{
+    remaining_accounts: &[AccountInfo],
+) -> std::result::Result<(), anchor_lang::prelude::ProgramError> {
     // Execute the transaction signed by the pdasender/pdareceiver.
     let mut ix: Instruction = (transaction).deref().into();
     ix.accounts = ix
@@ -1333,5 +1421,4 @@ fn perform_cpi(
     let accounts = remaining_accounts;
 
     solana_program::program::invoke_signed(&ix, accounts, signer)
-        
 }

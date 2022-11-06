@@ -152,7 +152,7 @@ pub struct DirectTransferNative<'info> {
         ],
         bump
     )]
-    pub data_storage: Account<'info, TransactionData>,
+    pub data_storage: Box<Account<'info, TransactionData>>,
 
     #[account(
         mut,
@@ -163,7 +163,7 @@ pub struct DirectTransferNative<'info> {
         ],
         bump
     )]
-    pub txn_count: Account<'info, Count>,
+    pub txn_count: Box<Account<'info, Count>>,
 
     ///CHECK: pda seeds checked
     #[account(
@@ -194,8 +194,8 @@ pub struct DirectTransferNative<'info> {
     )]
     /// CHECK: portal config
     pub portal_config: AccountInfo<'info>,
-
-        #[account(
+    
+    #[account(
         mut,
         constraint = from.owner == pda_signer.key(),
         constraint = from.mint == mint.key(),
@@ -538,7 +538,7 @@ pub struct StoreMsg<'info>{
     #[account(
         init_if_needed,
         payer = payer, 
-        space = 8 + 1,
+        space = 8 + 4,
         seeds = [
             b"txn_count".as_ref(),
             &sender,
@@ -550,8 +550,8 @@ pub struct StoreMsg<'info>{
 
 #[derive(Accounts)]
 #[instruction(  
+    eth_add:[u8; 32],
     from_chain_id: Vec<u8>,
-    eth_add: Vec<u8>
 )]
 pub struct ExecuteTransaction<'info> {
     ///CHECK: seeds are checked while creating transaction,
