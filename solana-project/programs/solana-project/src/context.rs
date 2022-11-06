@@ -82,6 +82,18 @@ pub struct CreateTransaction<'info> {
         bump
     )]
     pub txn_count: Account<'info, Count>,
+
+
+    #[account(
+        mut, 
+        seeds = [
+            b"txn_status".as_ref(),
+            &sender,
+            &[txn_count.count]
+        ],
+        bump
+    )]
+    pub txn_status: Account<'info, TransactionStatus>,
 }
 
 #[derive(Accounts)]
@@ -164,6 +176,17 @@ pub struct DirectTransferNative<'info> {
         bump
     )]
     pub txn_count: Account<'info, Count>,
+
+    #[account(
+        mut, 
+        seeds = [
+            b"txn_status".as_ref(),
+            &sender,
+            &[txn_count.count]
+        ],
+        bump
+    )]
+    pub txn_status: Account<'info, TransactionStatus>,
 
     ///CHECK: pda seeds checked
     #[account(
@@ -322,6 +345,18 @@ pub struct DirectTransferWrapped<'info> {
         bump
     )]
     pub txn_count: Account<'info, Count>,
+
+
+    #[account(
+        mut, 
+        seeds = [
+            b"txn_status".as_ref(),
+            &sender,
+            &[txn_count.count]
+        ],
+        bump
+    )]
+    pub txn_status: Account<'info, TransactionStatus>,
 
     ///CHECK: pda seeds checked
     #[account(
@@ -486,6 +521,17 @@ pub struct CreateTransactionReceiver<'info> {
         bump
     )]
     pub txn_count: Account<'info, Count>,
+
+    #[account(
+        mut, 
+        seeds = [
+            b"txn_status".as_ref(),
+            &sender,
+            &[txn_count.count]
+        ],
+        bump
+    )]
+    pub txn_status: Account<'info, TransactionStatus>,
 }
 
 #[derive(Accounts)]
@@ -523,7 +569,7 @@ pub struct StoreMsg<'info>{
     pub core_bridge_vaa: AccountInfo<'info>,
 
     #[account(
-        init_if_needed,
+        init,
         space = 8 + 174,
         payer = payer,
         seeds = [
@@ -546,6 +592,19 @@ pub struct StoreMsg<'info>{
         bump
     )]
     pub txn_count: Account<'info, Count>,
+
+    #[account(
+        init, 
+        payer = payer,
+        space = 8 + 1,
+        seeds = [
+            b"txn_status".as_ref(),
+            &sender,
+            &[current_count]
+        ],
+        bump
+    )]
+    pub txn_status: Account<'info, TransactionStatus>,
 }
 
 #[derive(Accounts)]

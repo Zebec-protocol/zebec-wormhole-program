@@ -108,11 +108,7 @@ pub mod solana_project {
         }
 
         let count_stored = ctx.accounts.txn_count.count;
-        require!(
-            count_stored == current_count,
-            MessengerError::CountMismatch
-        );
-
+        
         emit!(StoredMsg{
             msg_type: code,
             sender: sender,
@@ -217,6 +213,8 @@ pub mod solana_project {
 
         sender: [u8; 32],
     ) -> Result<()> {
+        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
+
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
@@ -308,6 +306,8 @@ pub mod solana_project {
         chain_id: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
+        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
+
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
@@ -406,6 +406,8 @@ pub mod solana_project {
         chain_id: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
+        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
+
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
@@ -480,6 +482,8 @@ pub mod solana_project {
         data: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
+        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
+
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
@@ -552,6 +556,8 @@ pub mod solana_project {
         data: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
+        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
+
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
@@ -622,6 +628,8 @@ pub mod solana_project {
 
         sender: [u8; 32],
     ) -> Result<()> {
+        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
+
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
@@ -677,6 +685,8 @@ pub mod solana_project {
         data: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
+        require!(!ctx.accounts.txn_status.state, MessengerError::TransactionAlreadyCreated);
+
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
