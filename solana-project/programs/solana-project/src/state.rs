@@ -56,6 +56,11 @@ pub struct TransactionAccount {
 }
 
 #[account]
+pub struct TransactionStatus{
+    pub executed: bool
+} 
+
+#[account]
 #[derive(Default)]
 pub struct Count {
     pub count: u8,
