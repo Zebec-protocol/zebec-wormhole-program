@@ -143,6 +143,17 @@ pub struct CETransaction<'info> {
         bump
     )]
     pub pda_signer: UncheckedAccount<'info>,
+
+    #[account(
+        mut, 
+        seeds = [
+            b"txn_status".as_ref(),
+            &sender,
+            &[txn_count.count]
+        ],
+        bump
+    )]
+    pub txn_status: Account<'info, TransactionStatus>,
 }
 
 #[derive(Accounts)]
@@ -315,8 +326,8 @@ pub struct DirectTransferNative<'info> {
 #[instruction( 
     sender: [u8; 32],
     sender_chain: Vec<u8>,
-    token_address: Vec<u8>,
-    token_chain: u16,
+    _token_address: Vec<u8>,
+    _token_chain: u16,
 )]
 pub struct DirectTransferWrapped<'info> {
     // One of the owners. Checked in the handler.
@@ -397,8 +408,8 @@ pub struct DirectTransferWrapped<'info> {
         mut,
         seeds = [
             b"wrapped",
-            token_chain.to_be_bytes().as_ref(),
-            token_address.as_ref()
+            _token_chain.to_be_bytes().as_ref(),
+            _token_address.as_ref()
         ],
         seeds::program = portal_bridge_program.key(),
         bump,
@@ -542,8 +553,6 @@ pub struct CreateTransactionReceiver<'info> {
 pub struct StoreMsg<'info>{
 
     // ZEBEC's EOA.
-    //TODO: Can add a check so that the EOA is known before hand
-    // #[account(address = <expr>)] 
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,

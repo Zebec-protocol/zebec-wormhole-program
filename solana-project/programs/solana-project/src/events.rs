@@ -37,13 +37,14 @@ pub struct PausedResumed {
     pub current_count: u8,
 }
 
-// #[event]
-// pub struct DirectTransferredNative {
-//     pub sender: [u8; 32],
-//     pub sender_chain: Vec<u8>,
-//     pub target_chain: u16,
-//     pub receiver: Vec<u8>,
-// }
+#[event]
+pub struct DirectTransferredNative {
+    pub sender: [u8; 32],
+    pub sender_chain: Vec<u8>,
+    pub target_chain: u16,
+    pub receiver: Vec<u8>,
+    pub current_count: u8
+}
 
 #[event]
 pub struct DirectTransferredWrapped {

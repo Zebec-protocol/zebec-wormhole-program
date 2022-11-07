@@ -146,6 +146,10 @@ pub mod solana_project {
         chain_id: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
+        require!(
+            !ctx.accounts.txn_status.executed,
+            MessengerError::TransactionAlreadyCreated
+        );
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
@@ -314,6 +318,10 @@ pub mod solana_project {
         chain_id: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
+        require!(
+            !ctx.accounts.txn_status.executed,
+            MessengerError::TransactionAlreadyCreated
+        );
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
@@ -414,6 +422,10 @@ pub mod solana_project {
         chain_id: Vec<u8>,
         sender: [u8; 32],
     ) -> Result<()> {
+        require!(
+            !ctx.accounts.txn_status.executed,
+            MessengerError::TransactionAlreadyCreated
+        );
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
@@ -813,15 +825,14 @@ pub mod solana_project {
             MessengerError::SenderDerivedKeyMismatch
         );
 
-        msg!("Emitting");
-        // emit!(DirectTransferredNative {
-        //     sender: sender,
-        //     sender_chain: chain_id.clone(),
-        //     target_chain: target_chain,
-        //     receiver: receiver_stored.clone(),
-        // });
+        emit!(DirectTransferredNative {
+            sender: sender,
+            sender_chain: chain_id.clone(),
+            target_chain: target_chain,
+            receiver: receiver_stored.clone(),
+            current_count: count_stored
+        });
 
-        msg!("Calling transfer native");
         transfer_native(ctx, sender, chain_id, target_chain, fee, receiver_stored)
     }
 
@@ -830,8 +841,8 @@ pub mod solana_project {
         ctx: Context<DirectTransferWrapped>,
         sender: [u8; 32],
         sender_chain: Vec<u8>,
-        token_address: Vec<u8>,
-        token_chain: u16,
+        _token_address: Vec<u8>,
+        _token_chain: u16,
         target_chain: u16,
         fee: u64,
     ) -> Result<()> {
@@ -1045,7 +1056,6 @@ pub mod solana_project {
         fee: u64,
         receiver: Vec<u8>,
     ) -> Result<()> {
-        msg!("transfer_native");
         let amount = ctx.accounts.data_storage.amount;
         //Check EOA
         require!(
@@ -1053,13 +1063,10 @@ pub mod solana_project {
             MessengerError::InvalidCaller
         );
 
-        msg!("transfer_native 0");
-
         let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
 
         let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain, &bump]];
 
-        msg!("transfer_native 1");
         let approve_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             Approve {
@@ -1070,12 +1077,8 @@ pub mod solana_project {
             signer_seeds,
         );
 
-        msg!("transfer_native 2");
-
         // Delgate transfer authority to Token Bridge for the tokens
         approve(approve_ctx, amount)?;
-
-        msg!("transfer_native 3");
 
         let target_address: [u8; 32] = receiver.as_slice().try_into().unwrap();
         // Instruction
@@ -1115,8 +1118,6 @@ pub mod solana_project {
                 .try_to_vec()?,
         };
 
-        msg!("transfer_native 4");
-
         // Accounts
         let transfer_accs = vec![
             ctx.accounts.zebec_eoa.to_account_info(),
@@ -1140,19 +1141,13 @@ pub mod solana_project {
             ctx.accounts.token_program.to_account_info(),
         ];
 
-        msg!("transfer_native 5");
-
         invoke_signed(&transfer_ix, &transfer_accs, signer_seeds)?;
-
-        msg!("transfer_native 6");
 
         let sum = ctx.accounts.config.nonce.checked_add(1);
         match sum {
             None => return Err(MessengerError::Overflow.into()),
             Some(val) => ctx.accounts.config.nonce = val,
         }
-
-        msg!("transfer_native 7");
 
         Ok(())
     }
