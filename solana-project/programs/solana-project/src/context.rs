@@ -8,8 +8,6 @@ use std::str::FromStr;
 use crate::wormhole::*;
 use hex::decode;
 
-// pub const PREFIX_TOKEN: &str = "withdraw_token";
-
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(
