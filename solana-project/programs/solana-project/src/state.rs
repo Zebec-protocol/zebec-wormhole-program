@@ -1,6 +1,5 @@
 use anchor_lang::prelude::*;
 use anchor_lang::solana_program::instruction::Instruction;
-// use anchor_lang::solana_program::keccak::Hash;
 use borsh::{BorshDeserialize, BorshSerialize};
 
 #[account]
@@ -37,8 +36,6 @@ pub struct Transaction {
 #[account]
 // TODO: can_update and cancel are bools
 pub struct TransactionData {
-    // pub transaction_hash: [u8; 32],
-    // (4+32*1) * 3 + 8 + 32 + 8 + 8 + 8 + 1 + 1= 8 + 174
     pub sender: Vec<u8>,
     pub receiver: Vec<u8>,
     pub data_account: Pubkey,
@@ -57,6 +54,11 @@ pub struct TransactionAccount {
     pub is_signer: bool,
     pub is_writable: bool,
 }
+
+#[account]
+pub struct TransactionStatus{
+    pub executed: bool
+} 
 
 #[account]
 #[derive(Default)]
@@ -83,19 +85,6 @@ pub struct StreamUpdate {
     pub start_time: u64,
     pub end_time: u64,
     pub amount: u64,
-}
-
-#[account]
-pub struct Receipt {
-    pub amt_to_mint: u64,
-    pub foreign_receipient: [u8; 32],
-    pub foreign_chain: u16,
-    pub claimed: bool,
-}
-
-#[account]
-pub struct MintInfo {
-    pub mint: Pubkey,
 }
 
 impl From<&Transaction> for Instruction {

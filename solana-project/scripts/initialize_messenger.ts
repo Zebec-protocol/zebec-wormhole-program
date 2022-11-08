@@ -11,7 +11,7 @@ async function main() {
   ); //7Tn83bS6TJquiCz9pXsCnYZpZmqPQrTjyeksPmJgURoS
   console.log(KEYPAIR.publicKey.toBase58());
   const CONN_STRING = 'https://api.devnet.solana.com';
-  const CONTRACT_ADDRESS = 'ExoGSfFpysvXgA75oKaBf5i8cqn2DYBCf4mdi36jja5u';
+  const CONTRACT_ADDRESS = 'F56A1FPDGsNUrqHNjmHZ36txyDTY8VYA7UEWV4SwxQAF';
   const IDL = JSON.parse(
     fs.readFileSync('target/idl/solana_project.json').toString()
   );
