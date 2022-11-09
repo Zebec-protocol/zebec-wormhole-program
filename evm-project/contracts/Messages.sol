@@ -9,6 +9,7 @@ contract Messages {
     
     struct InitializePDA{
         bytes account;
+
     }
 
     struct InitializeTokenAccount{

@@ -44,19 +44,20 @@ contract Messenger is Encoder {
     }
 
     function initialize_pda(
-        bytes memory account ,
+        bytes memory account,
         uint256 arbiter_fee
     ) public payable {
         nonce++;
-        bytes memory encoded_data = Encoder.encode_initialize_pda(Messages.InitializePDA{
-            account: account
-        });
+        bytes memory encoded_data = Encoder.encode_initialize_pda(
+            Messages.InitializePDA({
+                account: account
+            })
+        );
         _bridgeInstructionInWormhole(
             nonce,
             encoded_data,
             arbiter_fee
         );
-
         emit PDAInitialize(account, nonce);
     }
 
@@ -66,16 +67,17 @@ contract Messenger is Encoder {
         uint256 arbiter_fee
     ) public payable  {
         nonce++;
-        bytes memory encoded_data = Encoder.encode_initialize_token_account(Messages.InitializeTokenAccount{
-            account: account,
-            tokenMint: token_mint
-        });
+        bytes memory encoded_data = Encoder.encode_initialize_token_account(
+            Messages.InitializeTokenAccount({
+                account: account,
+                tokenMint: token_mint
+            })
+        );
         _bridgeInstructionInWormhole(
             nonce,
             encoded_data,
             arbiter_fee
         );   
-
         emit TokenAccountInitialize(account, token_mint, nonce); 
     }
 
