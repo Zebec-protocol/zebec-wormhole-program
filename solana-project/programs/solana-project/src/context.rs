@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::Token;
-use anchor_spl::token::TokenAccount;
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::{Mint, TokenAccount, Token}
+};
 use crate::constants::*;
 use crate::portal::TokenPortalBridge;
 use crate::state::*;
@@ -41,6 +43,80 @@ pub struct RegisterChain<'info> {
         space=8 + 2 + 4 + EVM_CHAIN_ADDRESS_LENGTH
     )]
     pub emitter_acc: Account<'info, EmitterAddrAccount>,
+}
+
+#[derive(Accounts)]
+pub struct InitializePDA<'info> {
+    #[account(mut)]
+    pub zebec_eoa: Signer<'info>,
+    pub system_program: Program<'info, System>,
+    #[account(
+        init,
+        seeds=[
+            &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            emitter_acc.chain_id.to_be_bytes().as_ref(),
+            (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
+        ],
+        payer=zebec_eoa,
+        bump,
+        space=8
+    )]
+    pub processed_vaa: Account<'info, ProcessedVAA>,
+    pub emitter_acc: Account<'info, EmitterAddrAccount>,
+    /// This requires some fancy hashing, so confirm it's derived address in the function itself.
+    #[account(
+        constraint = core_bridge_vaa.to_account_info().owner == &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
+    )]
+    /// CHECK: This account is owned by Core Bridge so we trust it
+    pub core_bridge_vaa: AccountInfo<'info>,
+
+    ///CHECK:: pda_account are checked inside
+    #[account(mut)]
+    pub pda_account: UncheckedAccount<'info>,
+}
+
+#[derive(Accounts)]
+pub struct InitializePDATokenAccount<'info> {
+    #[account(mut)]
+    pub zebec_eoa: Signer<'info>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+    pub token_program: Program<'info, Token>,   
+    pub associated_token_program: Program<'info, AssociatedToken>,
+
+
+    #[account(
+        init,
+        seeds=[
+            &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            emitter_acc.chain_id.to_be_bytes().as_ref(),
+            (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
+        ],
+        payer=zebec_eoa,
+        bump,
+        space=8
+    )]
+    pub processed_vaa: Account<'info, ProcessedVAA>,
+    pub emitter_acc: Account<'info, EmitterAddrAccount>,
+    /// This requires some fancy hashing, so confirm it's derived address in the function itself.
+    #[account(
+        constraint = core_bridge_vaa.to_account_info().owner == &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
+    )]
+    /// CHECK: This account is owned by Core Bridge so we trust it
+    pub core_bridge_vaa: AccountInfo<'info>,
+
+    ///CHECK:: pda_account are checked inside
+    #[account(mut)]
+    pub pda_account: UncheckedAccount<'info>,
+
+    #[account(
+        init_if_needed,
+        payer = zebec_eoa,
+        associated_token::mint = token_mint,
+        associated_token::authority = pda_account,
+    )]
+    pub pda_token_account: Box <Account<'info, TokenAccount>>,
+    pub token_mint: Account<'info, Mint>
 }
 
 #[derive(Accounts)]

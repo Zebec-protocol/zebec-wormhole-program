@@ -69,5 +69,8 @@ pub enum MessengerError {
     TransactionAlreadyCreated,
 
     #[msg("Transaction Already Executed")]
-    TransactionAlreadyExecuted
+    TransactionAlreadyExecuted,
+
+    #[msg("Invalid PDA Account Key")]
+    InvalidPDAAccount,
 }
