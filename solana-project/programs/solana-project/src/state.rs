@@ -18,7 +18,9 @@ pub struct EmitterAddrAccount {
 
 //Empty account, we just need to check that it *exists*
 #[account]
-pub struct ProcessedVAA {}
+pub struct ProcessedVAA {
+    pub transaction_count: u8,
+}
 
 #[account]
 pub struct Transaction {

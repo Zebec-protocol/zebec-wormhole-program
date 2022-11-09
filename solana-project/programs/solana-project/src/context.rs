@@ -71,7 +71,6 @@ pub struct InitializePDA<'info> {
     pub core_bridge_vaa: AccountInfo<'info>,
 
     ///CHECK:: pda_account are checked inside
-    #[account(mut)]
     pub pda_account: UncheckedAccount<'info>,
 }
 
@@ -125,6 +124,7 @@ pub struct InitializePDATokenAccount<'info> {
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     sender: [u8; 32],
+    current_count: u8
 )]
 pub struct CreateTransaction<'info> {
     #[account(zero, signer)]
@@ -139,7 +139,7 @@ pub struct CreateTransaction<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[txn_count.count]
+            &[current_count]
         ],
         bump
     )]
@@ -147,23 +147,11 @@ pub struct CreateTransaction<'info> {
     pub data_storage: Account<'info, TransactionData>,
 
     #[account(
-        mut,
-        constraint = data_storage.sender == sender,
-        seeds = [
-            b"txn_count".as_ref(),
-            &sender,
-        ],
-        bump
-    )]
-    pub txn_count: Account<'info, Count>,
-
-
-    #[account(
         mut, 
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[txn_count.count]
+            &[current_count]
         ],
         bump
     )]
@@ -177,6 +165,7 @@ pub struct CreateTransaction<'info> {
     data: Vec<u8>,
     chain_id: Vec<u8>,
     sender: [u8; 32],
+    current_count: u8
 )]
 pub struct CETransaction<'info> {
     #[account(zero, signer)]
@@ -191,22 +180,12 @@ pub struct CETransaction<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[txn_count.count]
+            &[current_count]
         ],
         bump
     )]
     pub data_storage: Account<'info, TransactionData>,
 
-    #[account(
-        mut,
-        constraint = data_storage.sender == sender,
-        seeds = [
-            b"txn_count".as_ref(),
-            &sender,
-        ],
-        bump
-    )]
-    pub txn_count: Account<'info, Count>,
     ///CHECK: pda seeds checked
     #[account(
         mut,
@@ -223,7 +202,7 @@ pub struct CETransaction<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[txn_count.count]
+            &[current_count]
         ],
         bump
     )]
@@ -234,6 +213,7 @@ pub struct CETransaction<'info> {
 #[instruction( 
     sender: [u8; 32],
     chain_id: Vec<u8>,
+    current_count: u8
 )]
 pub struct DirectTransferNative<'info> {
     // One of the owners. Checked in the handler.
@@ -245,29 +225,18 @@ pub struct DirectTransferNative<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[txn_count.count]
+            &[current_count]
         ],
         bump
     )]
     pub data_storage: Box<Account<'info, TransactionData>>,
 
     #[account(
-        mut,
-        constraint = data_storage.sender == sender,
-        seeds = [
-            b"txn_count".as_ref(),
-            &sender,
-        ],
-        bump
-    )]
-    pub txn_count: Box<Account<'info, Count>>,
-
-    #[account(
         mut, 
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[txn_count.count]
+            &[current_count]
         ],
         bump
     )]
@@ -402,6 +371,7 @@ pub struct DirectTransferNative<'info> {
     sender_chain: Vec<u8>,
     _token_address: Vec<u8>,
     _token_chain: u16,
+    current_count: u8
 )]
 pub struct DirectTransferWrapped<'info> {
     // One of the owners. Checked in the handler.
@@ -413,7 +383,7 @@ pub struct DirectTransferWrapped<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[txn_count.count]
+            &[current_count]
         ],
         bump
     )]
@@ -421,23 +391,11 @@ pub struct DirectTransferWrapped<'info> {
     pub data_storage: Account<'info, TransactionData>,
 
     #[account(
-        mut,
-        constraint = data_storage.sender == sender,
-        seeds = [
-            b"txn_count".as_ref(),
-            &sender,
-        ],
-        bump
-    )]
-    pub txn_count: Account<'info, Count>,
-
-
-    #[account(
         mut, 
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[txn_count.count]
+            &[current_count]
         ],
         bump
     )]
@@ -575,6 +533,7 @@ pub struct DirectTransferWrapped<'info> {
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     sender: [u8; 32],
+    _current_count: u8
 )]
 pub struct CreateTransactionReceiver<'info> {
     #[account(zero, signer)]
@@ -589,7 +548,7 @@ pub struct CreateTransactionReceiver<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[txn_count.count]
+            &[_current_count]
         ],
         bump
     )]
@@ -597,22 +556,11 @@ pub struct CreateTransactionReceiver<'info> {
     pub data_storage: Account<'info, TransactionData>,
 
     #[account(
-        mut,
-        constraint = data_storage.receiver == sender,
-        seeds = [
-            b"txn_count".as_ref(),
-            &sender,
-        ],
-        bump
-    )]
-    pub txn_count: Account<'info, Count>,
-
-    #[account(
         mut, 
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[txn_count.count]
+            &[_current_count]
         ],
         bump
     )]
@@ -640,7 +588,7 @@ pub struct StoreMsg<'info>{
         ],
         payer=payer,
         bump,
-        space=8
+        space=8 + 4
     )]
     pub processed_vaa: Account<'info, ProcessedVAA>,
     pub emitter_acc: Account<'info, EmitterAddrAccount>,
@@ -694,7 +642,7 @@ pub struct StoreMsg<'info>{
 #[instruction(  
     eth_add:[u8; 32],
     from_chain_id: Vec<u8>,
-    current_count: u8
+    _current_count: u8
 )]
 pub struct ExecuteTransaction<'info> {
     pub system_program: Program<'info, System>,
@@ -717,7 +665,7 @@ pub struct ExecuteTransaction<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &eth_add,
-            &[current_count]
+            &[_current_count]
         ],
         bump
     )]
