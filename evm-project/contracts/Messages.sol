@@ -6,6 +6,15 @@ pragma solidity ^0.8.0;
  * @title Messages
  */
 contract Messages {
+    
+    struct InitializePDA{
+        bytes account;
+    }
+
+    struct InitializeTokenAccount{
+        bytes account;
+        bytes tokenMint;
+    }
     struct UpdateStream {
         uint64 start_time;
         uint64 end_time;
