@@ -1,4 +1,4 @@
 pub const CORE_BRIDGE_ADDRESS: &str = "3u8hJUVTA4jH1wYAyUur7FFZVQ8H635K3tSHHF4ssjQ5";
 pub const TOKEN_BRIDGE_ADDRESS: &str = "DZnkkTmCiFWfYTfT41X3Rd1kDgozqzxWaHqsw6W4x2oe";
 
-pub const EVM_CHAIN_ADDRESS_LENGTH: usize = 42;
+pub const EVM_CHAIN_ADDRESS_LENGTH: usize = 64;
