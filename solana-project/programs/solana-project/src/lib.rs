@@ -1,15 +1,10 @@
 use anchor_lang::prelude::*;
-use anchor_lang::system_program::{
-    Transfer as TransferSol,
-    transfer as transfer_sol
-};
+use anchor_lang::system_program::{transfer as transfer_sol, Transfer as TransferSol};
 
 use anchor_lang::solana_program::instruction::Instruction;
 
-
 use anchor_lang::solana_program;
-use anchor_spl::{
-    token::{approve, Approve}};
+use anchor_spl::token::{approve, Approve};
 
 use primitive_types::U256;
 use sha3::Digest;
@@ -40,7 +35,7 @@ use std::ops::Deref;
 
 use anchor_lang::solana_program::program::invoke_signed;
 
-declare_id!("GtyAQgcYTGso352pgR7T8tfESe3TGE5eUkEj9dYyrypS");
+declare_id!("7uwjpCoFFBNNF7Bd85hW5RQkxgsRX5MR6hray5EWB19v");
 
 #[program]
 pub mod solana_project {
@@ -78,11 +73,9 @@ pub mod solana_project {
         Ok(())
     }
 
-    pub fn initialize_pda(
-        ctx: Context<InitializePDA>,
-    ) -> Result<()>{
+    pub fn initialize_pda(ctx: Context<InitializePDA>) -> Result<()> {
         //Hash a VAA Extract and derive a VAostedMA Key
-        let vaa = MessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?;
+        let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
         let serialized_vaa = serialize_vaa(&vaa);
 
         let mut h = sha3::Keccak256::default();
@@ -115,31 +108,45 @@ pub mod solana_project {
         let code = get_u8(encoded_str[0..1].to_vec());
 
         require!(code == 18, MessengerError::InvalidPayload);
-        let account_pda = Pubkey::find_program_address(&[&encoded_str[1..33], vaa.emitter_chain.to_string().as_bytes()], ctx.program_id).0;
-        require!(account_pda == ctx.accounts.pda_account.key(), MessengerError::InvalidPDAAccount);
+        let account_pda = Pubkey::find_program_address(
+            &[
+                &encoded_str[1..33],
+                vaa.emitter_chain.to_string().as_bytes(),
+            ],
+            ctx.program_id,
+        )
+        .0;
+        require!(
+            account_pda == ctx.accounts.pda_account.key(),
+            MessengerError::InvalidPDAAccount
+        );
 
         let rent_lamport = Rent::default().minimum_balance(1);
 
-        if **ctx.accounts.pda_account.to_account_info().try_borrow_lamports()? == 0u64{
+        if **ctx
+            .accounts
+            .pda_account
+            .to_account_info()
+            .try_borrow_lamports()?
+            == 0u64
+        {
             let cpi_transfer_sol = TransferSol {
                 from: ctx.accounts.zebec_eoa.to_account_info(),
                 to: ctx.accounts.pda_account.to_account_info(),
             };
-            let cpi_transfer_sol_ctx = CpiContext::new(ctx.accounts.system_program.to_account_info(), cpi_transfer_sol);
-            transfer_sol(
-                cpi_transfer_sol_ctx,
-                rent_lamport
-            )?;
-        } 
+            let cpi_transfer_sol_ctx = CpiContext::new(
+                ctx.accounts.system_program.to_account_info(),
+                cpi_transfer_sol,
+            );
+            transfer_sol(cpi_transfer_sol_ctx, rent_lamport)?;
+        }
 
         Ok(())
-    }   
+    }
 
-    pub fn initialize_pda_token_account(
-        ctx: Context<InitializePDATokenAccount>,
-    ) -> Result<()> {
-         //Hash a VAA Extract and derive a VAostedMA Key
-        let vaa = MessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?;
+    pub fn initialize_pda_token_account(ctx: Context<InitializePDATokenAccount>) -> Result<()> {
+        //Hash a VAA Extract and derive a VAostedMA Key
+        let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
         let serialized_vaa = serialize_vaa(&vaa);
 
         let mut h = sha3::Keccak256::default();
@@ -149,7 +156,8 @@ pub mod solana_project {
         let vaa_key = Pubkey::find_program_address(
             &[b"PostedVAA", &vaa_hash],
             &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
-        ).0;
+        )
+        .0;
 
         require!(
             ctx.accounts.core_bridge_vaa.key() == vaa_key,
@@ -172,10 +180,27 @@ pub mod solana_project {
         let code = get_u8(encoded_str[0..1].to_vec());
 
         require!(code == 19, MessengerError::InvalidPayload);
-        let account_pda = Pubkey::find_program_address(&[&encoded_str[1..33], vaa.emitter_chain.to_string().as_bytes()], ctx.program_id).0;
-        let token_mint = Pubkey::find_program_address(&[&encoded_str[33..65]], ctx.program_id).0;
-        require!(account_pda == ctx.accounts.pda_account.key(), MessengerError::InvalidPDAAccount);
-        require!(token_mint == ctx.accounts.token_mint.key(), MessengerError::MintKeyMismatch);
+
+        let account_pda = Pubkey::find_program_address(
+            &[
+                &encoded_str[1..33],
+                vaa.emitter_chain.to_string().as_bytes(),
+            ],
+            ctx.program_id,
+        )
+        .0;
+
+        let token_mint_array: [u8; 32] = encoded_str[33..65].try_into().unwrap();
+        let token_mint = Pubkey::new_from_array(token_mint_array);
+
+        require!(
+            account_pda == ctx.accounts.pda_account.key(),
+            MessengerError::InvalidPDAAccount
+        );
+        require!(
+            token_mint == ctx.accounts.token_mint.key(),
+            MessengerError::MintKeyMismatch
+        );
         Ok(())
     }
 
@@ -188,10 +213,11 @@ pub mod solana_project {
         h.write_all(serialized_vaa.as_slice()).unwrap();
         let vaa_hash: [u8; 32] = h.finalize().into();
 
-        let vaa_key  = Pubkey::find_program_address(
+        let vaa_key = Pubkey::find_program_address(
             &[b"PostedVAA", &vaa_hash],
             &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
-        ).0;
+        )
+        .0;
 
         require!(
             ctx.accounts.core_bridge_vaa.key() == vaa_key,
@@ -253,7 +279,7 @@ pub mod solana_project {
         data: Vec<u8>,
         chain_id: Vec<u8>,
         sender: [u8; 32],
-        current_count: u8
+        current_count: u8,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -330,7 +356,7 @@ pub mod solana_project {
         data: Vec<u8>,
 
         sender: [u8; 32],
-        current_count: u8
+        current_count: u8,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -423,7 +449,7 @@ pub mod solana_project {
         data: Vec<u8>,
         chain_id: Vec<u8>,
         sender: [u8; 32],
-        current_count: u8
+        current_count: u8,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -526,7 +552,7 @@ pub mod solana_project {
         data: Vec<u8>,
         chain_id: Vec<u8>,
         sender: [u8; 32],
-        current_count: u8
+        current_count: u8,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -605,7 +631,7 @@ pub mod solana_project {
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
-        _current_count: u8
+        _current_count: u8,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -673,7 +699,7 @@ pub mod solana_project {
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
-        current_count: u8
+        current_count: u8,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -748,7 +774,7 @@ pub mod solana_project {
         data: Vec<u8>,
 
         sender: [u8; 32],
-        current_count: u8
+        current_count: u8,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -810,7 +836,7 @@ pub mod solana_project {
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
-        current_count: u8
+        current_count: u8,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -886,7 +912,7 @@ pub mod solana_project {
         chain_id: Vec<u8>,
         target_chain: u16,
         fee: u64,
-        current_count: u8
+        current_count: u8,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -940,7 +966,7 @@ pub mod solana_project {
         _token_chain: u16,
         target_chain: u16,
         fee: u64,
-        current_count: u8
+        current_count: u8,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -998,7 +1024,7 @@ pub mod solana_project {
         ctx: Context<ExecuteTransaction>,
         eth_add: [u8; 32],
         from_chain_id: Vec<u8>,
-        _current_count: u8
+        _current_count: u8,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -1043,7 +1069,7 @@ pub mod solana_project {
         sender_chain: Vec<u8>,
         target_chain: u16,
         fee: u64,
-        receiver: Vec<u8>
+        receiver: Vec<u8>,
     ) -> Result<()> {
         let amount = ctx.accounts.data_storage.amount;
 

@@ -59,7 +59,7 @@ pub struct InitializePDA<'info> {
         ],
         payer=zebec_eoa,
         bump,
-        space=8
+        space=8 + 4
     )]
     pub processed_vaa: Account<'info, ProcessedVAA>,
     pub emitter_acc: Account<'info, EmitterAddrAccount>,
@@ -71,6 +71,7 @@ pub struct InitializePDA<'info> {
     pub core_bridge_vaa: AccountInfo<'info>,
 
     ///CHECK:: pda_account are checked inside
+    #[account(mut)]
     pub pda_account: UncheckedAccount<'info>,
 }
 
@@ -93,7 +94,7 @@ pub struct InitializePDATokenAccount<'info> {
         ],
         payer=zebec_eoa,
         bump,
-        space=8
+        space=8+4
     )]
     pub processed_vaa: Account<'info, ProcessedVAA>,
     pub emitter_acc: Account<'info, EmitterAddrAccount>,
