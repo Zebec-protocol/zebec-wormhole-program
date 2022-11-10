@@ -33,8 +33,15 @@ const config: HardhatUserConfig = {
                     : [],
         },
         goerli: {
-            // url: "https://eth-goerli.g.alchemy.com/v2/FrNT22a87AJPf_ZTxgomEm201YPJaW1P",
-            url: "https://rpc.goerli.mudit.blog/",
+            url: "https://eth-goerli.g.alchemy.com/v2/9wRFcxcjx3-SAM2OAFfTvS2GhsL1Yso0",
+            accounts: [
+                "7c56131ac2d675249d73fb032de5533f183f36b2aa2e82ab163e88ded1be3b39",
+            ],
+            // gas: 2100000,
+            // gasPrice: 8000000000
+        },
+        smartChain: {
+            url: "https://data-seed-prebsc-1-s1.binance.org:8545/",
             accounts: [
                 "7c56131ac2d675249d73fb032de5533f183f36b2aa2e82ab163e88ded1be3b39",
             ],

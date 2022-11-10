@@ -6,7 +6,7 @@ import { findProgramAddressSync } from '@project-serum/anchor/dist/cjs/utils/pub
 import * as b from 'byteify';
 
 import {
-  CHAIN_ID_ETH,
+  CHAIN_ID_BSC,
   getEmitterAddressEth,
   setDefaultWasm,
 } from '@certusone/wormhole-sdk';
@@ -17,7 +17,7 @@ async function register_eth_address() {
     Uint8Array.from(JSON.parse(fs.readFileSync('hello.json').toString()))
   );
   const CONN_STRING = 'https://api.devnet.solana.com';
-  const CONTRACT_ADDRESS = 'ExoGSfFpysvXgA75oKaBf5i8cqn2DYBCf4mdi36jja5u';
+  const CONTRACT_ADDRESS = 'F56A1FPDGsNUrqHNjmHZ36txyDTY8VYA7UEWV4SwxQAF';
   const IDL = JSON.parse(
     fs.readFileSync('target/idl/solana_project.json').toString()
   );
@@ -36,7 +36,7 @@ async function register_eth_address() {
   );
 
   await program.methods
-    .registerChain(CHAIN_ID_ETH, ethAddress)
+    .registerChain(CHAIN_ID_BSC, ethAddress)
     .accounts({
       owner: KEYPAIR.publicKey,
       systemProgram: anchor.web3.SystemProgram.programId,
@@ -45,7 +45,7 @@ async function register_eth_address() {
         program.programId
       )[0],
       emitterAcc: findProgramAddressSync(
-        [Buffer.from('EmitterAddress'), b.serializeUint16(CHAIN_ID_ETH)],
+        [Buffer.from('EmitterAddress'), b.serializeUint16(CHAIN_ID_BSC)],
         program.programId
       )[0],
     })
