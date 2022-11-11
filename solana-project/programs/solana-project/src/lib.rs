@@ -140,6 +140,7 @@ pub mod solana_project {
             );
             transfer_sol(cpi_transfer_sol_ctx, rent_lamport)?;
         }
+        emit!(InitializedPDA { pda: account_pda });
 
         Ok(())
     }
@@ -180,7 +181,6 @@ pub mod solana_project {
         let code = get_u8(encoded_str[0..1].to_vec());
 
         require!(code == 19, MessengerError::InvalidPayload);
-
         let account_pda = Pubkey::find_program_address(
             &[
                 &encoded_str[1..33],
@@ -189,10 +189,8 @@ pub mod solana_project {
             ctx.program_id,
         )
         .0;
-
         let token_mint_array: [u8; 32] = encoded_str[33..65].try_into().unwrap();
         let token_mint = Pubkey::new_from_array(token_mint_array);
-
         require!(
             account_pda == ctx.accounts.pda_account.key(),
             MessengerError::InvalidPDAAccount
@@ -201,6 +199,11 @@ pub mod solana_project {
             token_mint == ctx.accounts.token_mint.key(),
             MessengerError::MintKeyMismatch
         );
+
+        emit!(InitializedPDATokenAccount {
+            pda: account_pda,
+            token_mint: token_mint,
+        });
         Ok(())
     }
 
