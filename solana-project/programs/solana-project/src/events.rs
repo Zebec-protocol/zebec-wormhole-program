@@ -1,6 +1,17 @@
 use anchor_lang::prelude::*;
 
 #[event]
+pub struct InitializedPDA{
+    pub pda: Pubkey
+}
+
+#[event]
+pub struct InitializedPDATokenAccount{
+    pub pda: Pubkey,
+    pub token_mint: Pubkey,
+}
+
+#[event]
 pub struct Initialized {
     pub owner: Pubkey,
     pub nonce: u32,

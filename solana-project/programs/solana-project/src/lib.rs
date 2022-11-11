@@ -131,6 +131,11 @@ pub mod solana_project {
                 rent_lamport
             )?;
         } 
+        emit!(
+            InitializedPDA{
+                pda: account_pda
+            }
+        );
 
         Ok(())
     }   
@@ -173,9 +178,15 @@ pub mod solana_project {
 
         require!(code == 19, MessengerError::InvalidPayload);
         let account_pda = Pubkey::find_program_address(&[&encoded_str[1..33], vaa.emitter_chain.to_string().as_bytes()], ctx.program_id).0;
-        let token_mint = Pubkey::find_program_address(&[&encoded_str[33..65]], ctx.program_id).0;
+        let token_mint_array: [u8; 32] = encoded_str[33..65].try_into().unwrap();
+        let token_mint = Pubkey::new_from_array(token_mint_array);
         require!(account_pda == ctx.accounts.pda_account.key(), MessengerError::InvalidPDAAccount);
         require!(token_mint == ctx.accounts.token_mint.key(), MessengerError::MintKeyMismatch);
+        
+        emit!(InitializedPDATokenAccount{
+            pda: account_pda,
+            token_mint: token_mint,
+        });
         Ok(())
     }
 
