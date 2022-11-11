@@ -50,7 +50,8 @@ contract Messenger is Encoder {
         nonce++;
         bytes memory encoded_data = Encoder.encode_initialize_pda(
             Messages.InitializePDA({
-                account: account
+                account: account,
+                toChain: getChainId()
             })
         );
         _bridgeInstructionInWormhole(
@@ -70,7 +71,8 @@ contract Messenger is Encoder {
         bytes memory encoded_data = Encoder.encode_initialize_token_account(
             Messages.InitializeTokenAccount({
                 account: account,
-                tokenMint: token_mint
+                tokenMint: token_mint,
+                toChain: getChainId()
             })
         );
         _bridgeInstructionInWormhole(
