@@ -19,7 +19,8 @@ contract Encoder is Messages {
     function encode_initialize_pda(Messages.InitializePDA memory initializePDA) public pure returns (bytes memory encoded){
         encoded = abi.encodePacked(
             INITIALIZE_PDA,
-            initializePDA.account
+            initializePDA.account,
+            initializePDA.toChain
         );
     }
 
@@ -27,7 +28,8 @@ contract Encoder is Messages {
         encoded = abi.encodePacked(
             INITIALIZE_TOKEN_ACCOUNT,
             initializeTokenAccount.account,
-            initializeTokenAccount.tokenMint
+            initializeTokenAccount.tokenMint,
+            initializeTokenAccount.toChain
         );
     }
 

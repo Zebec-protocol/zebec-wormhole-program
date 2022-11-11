@@ -9,12 +9,13 @@ contract Messages {
     
     struct InitializePDA{
         bytes account;
-
+        uint256 toChain;
     }
 
     struct InitializeTokenAccount{
         bytes account;
         bytes tokenMint;
+        uint256 toChain;
     }
 
     struct UpdateStreamToken {
