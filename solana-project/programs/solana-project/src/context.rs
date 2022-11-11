@@ -70,8 +70,8 @@ pub struct InitializePDA<'info> {
     /// CHECK: This account is owned by Core Bridge so we trust it
     pub core_bridge_vaa: AccountInfo<'info>,
 
-    ///CHECK:: pda_account are checked inside
     #[account(mut)]
+    /// CHECK:: pda_account are checked inside
     pub pda_account: UncheckedAccount<'info>,
 }
 
