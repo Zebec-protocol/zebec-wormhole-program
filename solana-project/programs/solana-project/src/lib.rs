@@ -913,9 +913,9 @@ pub mod solana_project {
         ctx: Context<DirectTransferNative>,
         sender: [u8; 32],
         chain_id: Vec<u8>,
+        current_count: u8,
         target_chain: u16,
         fee: u64,
-        current_count: u8,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -967,9 +967,9 @@ pub mod solana_project {
         sender_chain: Vec<u8>,
         _token_address: Vec<u8>,
         _token_chain: u16,
+        current_count: u8,
         target_chain: u16,
         fee: u64,
-        current_count: u8,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
