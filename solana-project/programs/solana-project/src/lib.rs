@@ -290,6 +290,8 @@ pub mod solana_project {
             !ctx.accounts.txn_status.executed,
             MessengerError::TransactionAlreadyCreated
         );
+        let transaction_status = &mut ctx.accounts.txn_status;
+        transaction_status.executed = true;
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
@@ -460,6 +462,9 @@ pub mod solana_project {
             !ctx.accounts.txn_status.executed,
             MessengerError::TransactionAlreadyCreated
         );
+        let transaction_status = &mut ctx.accounts.txn_status;
+        transaction_status.executed = true;
+
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
@@ -563,6 +568,8 @@ pub mod solana_project {
             !ctx.accounts.txn_status.executed,
             MessengerError::TransactionAlreadyCreated
         );
+        let transaction_status = &mut ctx.accounts.txn_status;
+        transaction_status.executed = true;
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
         tx.program_id = pid;
