@@ -207,7 +207,7 @@ pub mod solana_project {
         Ok(())
     }
 
-    pub fn store_msg(ctx: Context<StoreMsg>, current_count: u8, sender: [u8; 32]) -> Result<()> {
+    pub fn store_msg(ctx: Context<StoreMsg>, current_count: u64, sender: [u8; 32]) -> Result<()> {
         //Hash a VAA Extract and derive a VAA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
         let serialized_vaa = serialize_vaa(&vaa);
@@ -282,7 +282,7 @@ pub mod solana_project {
         data: Vec<u8>,
         chain_id: Vec<u8>,
         sender: [u8; 32],
-        current_count: u8,
+        current_count: u64,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -359,7 +359,7 @@ pub mod solana_project {
         data: Vec<u8>,
 
         sender: [u8; 32],
-        current_count: u8,
+        current_count: u64,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -452,7 +452,7 @@ pub mod solana_project {
         data: Vec<u8>,
         chain_id: Vec<u8>,
         sender: [u8; 32],
-        current_count: u8,
+        current_count: u64,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -555,7 +555,7 @@ pub mod solana_project {
         data: Vec<u8>,
         chain_id: Vec<u8>,
         sender: [u8; 32],
-        current_count: u8,
+        current_count: u64,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -634,7 +634,7 @@ pub mod solana_project {
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
-        _current_count: u8,
+        _current_count: u64,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -702,7 +702,7 @@ pub mod solana_project {
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
-        current_count: u8,
+        current_count: u64,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -777,7 +777,7 @@ pub mod solana_project {
         data: Vec<u8>,
 
         sender: [u8; 32],
-        current_count: u8,
+        current_count: u64,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -839,7 +839,7 @@ pub mod solana_project {
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
-        current_count: u8,
+        current_count: u64,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -913,7 +913,7 @@ pub mod solana_project {
         ctx: Context<DirectTransferNative>,
         sender: [u8; 32],
         chain_id: Vec<u8>,
-        current_count: u8,
+        current_count: u64,
         target_chain: u16,
         fee: u64,
     ) -> Result<()> {
@@ -967,7 +967,7 @@ pub mod solana_project {
         sender_chain: Vec<u8>,
         _token_address: Vec<u8>,
         _token_chain: u16,
-        current_count: u8,
+        current_count: u64,
         target_chain: u16,
         fee: u64,
     ) -> Result<()> {
@@ -1027,7 +1027,7 @@ pub mod solana_project {
         ctx: Context<ExecuteTransaction>,
         eth_add: [u8; 32],
         from_chain_id: Vec<u8>,
-        _current_count: u8,
+        _current_count: u64,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,

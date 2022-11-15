@@ -125,7 +125,7 @@ pub struct InitializePDATokenAccount<'info> {
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     sender: [u8; 32],
-    current_count: u8
+    current_count: u64
 )]
 pub struct CreateTransaction<'info> {
     #[account(zero, signer)]
@@ -140,7 +140,7 @@ pub struct CreateTransaction<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[current_count]
+            &current_count.to_le_bytes()
         ],
         bump
     )]
@@ -152,7 +152,7 @@ pub struct CreateTransaction<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[current_count]
+            &current_count.to_le_bytes()
         ],
         bump
     )]
@@ -166,7 +166,7 @@ pub struct CreateTransaction<'info> {
     data: Vec<u8>,
     chain_id: Vec<u8>,
     sender: [u8; 32],
-    current_count: u8
+    current_count: u64
 )]
 pub struct CETransaction<'info> {
     #[account(zero, signer)]
@@ -181,7 +181,7 @@ pub struct CETransaction<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[current_count]
+            &current_count.to_le_bytes()
         ],
         bump
     )]
@@ -203,7 +203,7 @@ pub struct CETransaction<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[current_count]
+            &current_count.to_le_bytes()
         ],
         bump
     )]
@@ -214,7 +214,7 @@ pub struct CETransaction<'info> {
 #[instruction( 
     sender: [u8; 32],
     chain_id: Vec<u8>,
-    current_count: u8
+    current_count: u64
 )]
 pub struct DirectTransferNative<'info> {
     // One of the owners. Checked in the handler.
@@ -226,7 +226,7 @@ pub struct DirectTransferNative<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[current_count]
+            &current_count.to_le_bytes()
         ],
         bump
     )]
@@ -237,7 +237,7 @@ pub struct DirectTransferNative<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[current_count]
+            &current_count.to_le_bytes()
         ],
         bump
     )]
@@ -372,7 +372,7 @@ pub struct DirectTransferNative<'info> {
     sender_chain: Vec<u8>,
     _token_address: Vec<u8>,
     _token_chain: u16,
-    current_count: u8
+    current_count: u64
 )]
 pub struct DirectTransferWrapped<'info> {
     // One of the owners. Checked in the handler.
@@ -384,7 +384,7 @@ pub struct DirectTransferWrapped<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[current_count]
+            &current_count.to_le_bytes()
         ],
         bump
     )]
@@ -396,7 +396,7 @@ pub struct DirectTransferWrapped<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[current_count]
+            &current_count.to_le_bytes()
         ],
         bump
     )]
@@ -534,7 +534,7 @@ pub struct DirectTransferWrapped<'info> {
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     sender: [u8; 32],
-    _current_count: u8
+    _current_count: u64
 )]
 pub struct CreateTransactionReceiver<'info> {
     #[account(zero, signer)]
@@ -549,7 +549,7 @@ pub struct CreateTransactionReceiver<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[_current_count]
+            &_current_count.to_le_bytes()
         ],
         bump
     )]
@@ -561,7 +561,7 @@ pub struct CreateTransactionReceiver<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[_current_count]
+            &_current_count.to_le_bytes()
         ],
         bump
     )]
@@ -570,7 +570,7 @@ pub struct CreateTransactionReceiver<'info> {
 
 #[derive(Accounts)]
 #[instruction(
-    current_count: u8, 
+    current_count: u64, 
     sender: [u8; 32], 
 )]
 pub struct StoreMsg<'info>{
@@ -607,7 +607,7 @@ pub struct StoreMsg<'info>{
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[current_count]
+            &current_count.to_le_bytes()
         ],
         bump,
     )]
@@ -632,7 +632,7 @@ pub struct StoreMsg<'info>{
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[current_count]
+            &current_count.to_le_bytes()
         ],
         bump
     )]
@@ -643,7 +643,7 @@ pub struct StoreMsg<'info>{
 #[instruction(  
     eth_add:[u8; 32],
     from_chain_id: Vec<u8>,
-    _current_count: u8
+    _current_count: u64
 )]
 pub struct ExecuteTransaction<'info> {
     pub system_program: Program<'info, System>,
@@ -666,7 +666,7 @@ pub struct ExecuteTransaction<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &eth_add,
-            &[_current_count]
+            &_current_count.to_le_bytes()
         ],
         bump
     )]
