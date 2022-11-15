@@ -2,6 +2,9 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum MessengerError {
+    #[msg("Invalid To Chain Id")]
+    InvalidToChainId,
+
     #[msg("Posted VAA Key Mismatch")]
     VAAKeyMismatch,
 

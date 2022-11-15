@@ -122,6 +122,13 @@ pub mod solana_project {
             MessengerError::InvalidPDAAccount
         );
 
+        let to_chain_id = get_u256(encoded_str[33..65].to_vec());
+
+        require!(
+            to_chain_id == U256::from_str("1").unwrap(),
+            MessengerError::InvalidToChainId
+        );
+
         let rent_lamport = Rent::default().minimum_balance(1);
 
         if **ctx
@@ -193,6 +200,13 @@ pub mod solana_project {
         .0;
         let token_mint_array: [u8; 32] = encoded_str[33..65].try_into().unwrap();
         let token_mint = Pubkey::new_from_array(token_mint_array);
+        let to_chain_id = get_u256(encoded_str[65..97].to_vec());
+
+        require!(
+            to_chain_id == U256::from_str("1").unwrap(),
+            MessengerError::InvalidToChainId
+        );
+        
         require!(
             account_pda == ctx.accounts.pda_account.key(),
             MessengerError::InvalidPDAAccount
@@ -1329,7 +1343,7 @@ fn process_deposit(
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
-    let _to_chain_id = get_u256(encoded_str[9..41].to_vec());
+    let to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let senderbytes = encoded_str[41..73].to_vec();
     let token_mint_bytes = &encoded_str[73..105].to_vec();
 
@@ -1339,6 +1353,10 @@ fn process_deposit(
     transaction_data.token_mint = Pubkey::new(&token_mint_bytes);
 
     require!(senderbytes == sender, MessengerError::InvalidSenderWallet);
+    require!(
+        to_chain_id == U256::from_str("1").unwrap(),
+        MessengerError::InvalidToChainId
+    );
     Ok(())
 }
 
@@ -1352,7 +1370,7 @@ fn process_stream(
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
     let amount = get_u64(encoded_str[17..25].to_vec());
-    let _to_chain_id = get_u256(encoded_str[25..57].to_vec());
+    let to_chain_id = get_u256(encoded_str[25..57].to_vec());
     let senderwallet_bytes = encoded_str[57..89].to_vec();
     let receiver_wallet_bytes = encoded_str[89..121].to_vec();
     let can_update = get_u64(encoded_str[121..129].to_vec());
@@ -1375,6 +1393,10 @@ fn process_stream(
         senderwallet_bytes == sender,
         MessengerError::InvalidSenderWallet
     );
+    require!(
+        to_chain_id == U256::from_str("1").unwrap(),
+        MessengerError::InvalidToChainId
+    );
     Ok(())
 }
 
@@ -1388,7 +1410,7 @@ fn process_update_stream(
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
     let amount = get_u64(encoded_str[17..25].to_vec());
-    let _to_chain_id = get_u256(encoded_str[25..57].to_vec());
+    let to_chain_id = get_u256(encoded_str[25..57].to_vec());
     let senderwallet_bytes = encoded_str[57..89].to_vec();
     let receiver_wallet_bytes = encoded_str[89..121].to_vec();
     let token_mint = &encoded_str[121..153].to_vec();
@@ -1407,6 +1429,10 @@ fn process_update_stream(
         senderwallet_bytes == sender,
         MessengerError::InvalidSenderWallet
     );
+    require!(
+        to_chain_id == U256::from_str("1").unwrap(),
+        MessengerError::InvalidToChainId
+    );
     Ok(())
 }
 
@@ -1417,7 +1443,7 @@ fn process_pause(
     sender: Vec<u8>,
 ) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
-    let _to_chain_id = get_u256(encoded_str[1..33].to_vec());
+    let to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let depositor_wallet_bytes = encoded_str[33..65].to_vec();
     let token_mint = encoded_str[65..97].to_vec();
     let receiver_wallet_bytes = encoded_str[97..129].to_vec();
@@ -1433,6 +1459,10 @@ fn process_pause(
         depositor_wallet_bytes == sender,
         MessengerError::InvalidSenderWallet
     );
+    require!(
+        to_chain_id == U256::from_str("1").unwrap(),
+        MessengerError::InvalidToChainId
+    );
     Ok(())
 }
 
@@ -1444,7 +1474,7 @@ fn process_withdraw_stream(
     receiver: Vec<u8>,
 ) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
-    let _to_chain_id = get_u256(encoded_str[1..33].to_vec());
+    let to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let withdrawer_wallet_bytes = encoded_str[33..65].to_vec();
     let token_mint = encoded_str[65..97].to_vec();
     let depositor_wallet_bytes = encoded_str[97..129].to_vec();
@@ -1460,6 +1490,11 @@ fn process_withdraw_stream(
         withdrawer_wallet_bytes.to_vec() == receiver,
         MessengerError::InvalidSenderWallet
     );
+    require!(
+        to_chain_id == U256::from_str("1").unwrap(),
+        MessengerError::InvalidToChainId
+    );
+
     Ok(())
 }
 
@@ -1470,7 +1505,7 @@ fn process_cancel_stream(
     sender: Vec<u8>,
 ) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
-    let _to_chain_id = get_u256(encoded_str[1..33].to_vec());
+    let to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let depositor_wallet_bytes = encoded_str[33..65].to_vec();
     let token_mint = encoded_str[65..97].to_vec();
     let receiver_wallet_bytes = encoded_str[97..129].to_vec();
@@ -1486,6 +1521,11 @@ fn process_cancel_stream(
         depositor_wallet_bytes == sender,
         MessengerError::InvalidSenderWallet
     );
+    require!(
+        to_chain_id == U256::from_str("1").unwrap(),
+        MessengerError::InvalidToChainId
+    );
+
     Ok(())
 }
 
@@ -1498,7 +1538,7 @@ fn process_withdraw(
 ) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let amount = get_u64(encoded_str[1..9].to_vec());
-    let _to_chain_id = get_u256(encoded_str[9..41].to_vec());
+    let to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let withdrawer_wallet_bytes = encoded_str[41..73].to_vec();
     let token_mint = encoded_str[73..105].to_vec();
 
@@ -1510,6 +1550,10 @@ fn process_withdraw(
     require!(
         withdrawer_wallet_bytes == sender,
         MessengerError::InvalidSenderWallet
+    );
+    require!(
+        to_chain_id == U256::from_str("1").unwrap(),
+        MessengerError::InvalidToChainId
     );
     Ok(())
 }
@@ -1523,7 +1567,7 @@ fn process_instant_transfer(
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
-    let _to_chain_id = get_u256(encoded_str[9..41].to_vec());
+    let to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let senderwallet_bytes = encoded_str[41..73].to_vec();
     let token_mint = encoded_str[73..105].to_vec();
     let withdrawer_wallet_bytes = encoded_str[105..137].to_vec();
@@ -1538,6 +1582,10 @@ fn process_instant_transfer(
         senderwallet_bytes == sender,
         MessengerError::InvalidSenderWallet
     );
+    require!(
+        to_chain_id == U256::from_str("1").unwrap(),
+        MessengerError::InvalidToChainId
+    );
     Ok(())
 }
 
@@ -1550,7 +1598,7 @@ fn process_direct_transfer(
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
-    let _to_chain_id = get_u256(encoded_str[9..41].to_vec());
+    let to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let senderwallet_bytes = encoded_str[41..73].to_vec();
     let token_mint = encoded_str[73..105].to_vec();
     let withdrawer_wallet_bytes = encoded_str[105..137].to_vec();
@@ -1564,6 +1612,10 @@ fn process_direct_transfer(
     require!(
         senderwallet_bytes == sender,
         MessengerError::InvalidSenderWallet
+    );
+    require!(
+        to_chain_id == U256::from_str("1").unwrap(),
+        MessengerError::InvalidToChainId
     );
     Ok(())
 }
