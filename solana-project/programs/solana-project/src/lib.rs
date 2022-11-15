@@ -35,7 +35,7 @@ use std::ops::Deref;
 
 use anchor_lang::solana_program::program::invoke_signed;
 
-declare_id!("7uwjpCoFFBNNF7Bd85hW5RQkxgsRX5MR6hray5EWB19v");
+declare_id!("3hyoKShH2xk4hB5gXp6J3dyMEtxdzpj1SSScP1LsRzN8");
 
 #[program]
 pub mod solana_project {
@@ -73,7 +73,11 @@ pub mod solana_project {
         Ok(())
     }
 
-    pub fn initialize_pda(ctx: Context<InitializePDA>) -> Result<()> {
+    pub fn initialize_pda(
+        ctx: Context<InitializePDA>,
+        _sender: [u8; 32],
+        _chain_id: u16,
+    ) -> Result<()> {
         //Hash a VAA Extract and derive a VAostedMA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
         let serialized_vaa = serialize_vaa(&vaa);
@@ -109,10 +113,7 @@ pub mod solana_project {
 
         require!(code == 18, MessengerError::InvalidPayload);
         let account_pda = Pubkey::find_program_address(
-            &[
-                &encoded_str[1..33],
-                vaa.emitter_chain.to_string().as_bytes(),
-            ],
+            &[&encoded_str[1..33], &vaa.emitter_chain.to_be_bytes()],
             ctx.program_id,
         )
         .0;
@@ -145,7 +146,11 @@ pub mod solana_project {
         Ok(())
     }
 
-    pub fn initialize_pda_token_account(ctx: Context<InitializePDATokenAccount>) -> Result<()> {
+    pub fn initialize_pda_token_account(
+        ctx: Context<InitializePDATokenAccount>,
+        _sender: [u8; 32],
+        _chain_id: u16,
+    ) -> Result<()> {
         //Hash a VAA Extract and derive a VAostedMA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
         let serialized_vaa = serialize_vaa(&vaa);
@@ -177,15 +182,12 @@ pub mod solana_project {
         // Encoded String
         let encoded_str = vaa.payload.clone();
 
-        // Decode Encoded String and Store Value based upon the code sent on message passing
+        // Decode Encoded String and Store   Value based upon the code sent on message passing
         let code = get_u8(encoded_str[0..1].to_vec());
 
         require!(code == 19, MessengerError::InvalidPayload);
         let account_pda = Pubkey::find_program_address(
-            &[
-                &encoded_str[1..33],
-                vaa.emitter_chain.to_string().as_bytes(),
-            ],
+            &[&encoded_str[1..33], &vaa.emitter_chain.to_be_bytes()],
             ctx.program_id,
         )
         .0;
@@ -280,7 +282,7 @@ pub mod solana_project {
         pid: Pubkey,
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
-        chain_id: Vec<u8>,
+        chain_id: u16,
         sender: [u8; 32],
         current_count: u8,
     ) -> Result<()> {
@@ -310,8 +312,8 @@ pub mod solana_project {
         );
 
         //check pdaSender
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
@@ -393,8 +395,8 @@ pub mod solana_project {
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
 
         //check pdaSender
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
@@ -403,8 +405,8 @@ pub mod solana_project {
         );
 
         //check pdaReceiver
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], &ctx.program_id);
         require!(
@@ -450,7 +452,7 @@ pub mod solana_project {
         pid: Pubkey,
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
-        chain_id: Vec<u8>,
+        chain_id: u16,
         sender: [u8; 32],
         current_count: u8,
     ) -> Result<()> {
@@ -491,8 +493,8 @@ pub mod solana_project {
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
 
         //check pdaSender
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
@@ -501,8 +503,8 @@ pub mod solana_project {
         );
 
         //check pdaReceiver
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
         require!(
@@ -553,7 +555,7 @@ pub mod solana_project {
         pid: Pubkey,
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
-        chain_id: Vec<u8>,
+        chain_id: u16,
         sender: [u8; 32],
         current_count: u8,
     ) -> Result<()> {
@@ -587,8 +589,8 @@ pub mod solana_project {
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
 
         //check pdaSender
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
@@ -597,8 +599,8 @@ pub mod solana_project {
         );
 
         //check pdaReceiver
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
         require!(
@@ -675,8 +677,8 @@ pub mod solana_project {
         );
 
         //check pdaSender
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender_stored, &chain_id_seed], ctx.program_id);
         require!(
@@ -743,8 +745,8 @@ pub mod solana_project {
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
 
         //check pdaSender
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
@@ -753,8 +755,8 @@ pub mod solana_project {
         );
 
         //check pdaReceiver
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
         require!(
@@ -807,8 +809,8 @@ pub mod solana_project {
         );
 
         //check pdaSender
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
@@ -873,8 +875,8 @@ pub mod solana_project {
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
 
         //check pdaSender
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
@@ -883,8 +885,8 @@ pub mod solana_project {
         );
 
         //check pdaReceiver
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
         require!(
@@ -912,7 +914,7 @@ pub mod solana_project {
     pub fn transaction_direct_transfer_native(
         ctx: Context<DirectTransferNative>,
         sender: [u8; 32],
-        chain_id: Vec<u8>,
+        chain_id: u16,
         current_count: u8,
         target_chain: u16,
         fee: u64,
@@ -940,8 +942,8 @@ pub mod solana_project {
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
 
         //check pdaSender
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let (sender_derived_pubkey, _): (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
@@ -964,7 +966,7 @@ pub mod solana_project {
     pub fn transaction_direct_transfer_wrapped(
         ctx: Context<DirectTransferWrapped>,
         sender: [u8; 32],
-        sender_chain: Vec<u8>,
+        sender_chain: u16,
         _token_address: Vec<u8>,
         _token_chain: u16,
         current_count: u8,
@@ -996,8 +998,8 @@ pub mod solana_project {
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
 
         //check pdaSender
-        let chain_id_stored = (ctx.accounts.data_storage.from_chain_id).to_string();
-        let chain_id_seed = chain_id_stored.as_bytes();
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let (sender_derived_pubkey, _): (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, &chain_id_seed], &ctx.program_id);
         require!(
@@ -1026,7 +1028,7 @@ pub mod solana_project {
     pub fn execute_transaction(
         ctx: Context<ExecuteTransaction>,
         eth_add: [u8; 32],
-        from_chain_id: Vec<u8>,
+        from_chain_id: u16,
         _current_count: u8,
     ) -> Result<()> {
         require!(
@@ -1069,7 +1071,7 @@ pub mod solana_project {
     pub fn transfer_wrapped(
         ctx: Context<DirectTransferWrapped>,
         sender: Vec<u8>,
-        sender_chain: Vec<u8>,
+        sender_chain: u16,
         target_chain: u16,
         fee: u64,
         receiver: Vec<u8>,
@@ -1084,7 +1086,7 @@ pub mod solana_project {
         msg!("updated");
         let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
 
-        let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain, &bump]];
+        let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain.to_be_bytes(), &bump]];
 
         let approve_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
@@ -1175,7 +1177,7 @@ pub mod solana_project {
     pub fn transfer_native(
         ctx: Context<DirectTransferNative>,
         sender: [u8; 32],
-        sender_chain: Vec<u8>,
+        sender_chain: u16,
         target_chain: u16,
         fee: u64,
         receiver: Vec<u8>,
@@ -1189,7 +1191,7 @@ pub mod solana_project {
 
         let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
 
-        let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain, &bump]];
+        let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain.to_be_bytes(), &bump]];
 
         let approve_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
@@ -1557,7 +1559,7 @@ fn process_direct_transfer(
 }
 
 fn perform_cpi(
-    chain_id: Vec<u8>,
+    chain_id: u16,
     sender: [u8; 32],
     transaction: Account<Transaction>,
     pda_signer: UncheckedAccount,
@@ -1579,7 +1581,7 @@ fn perform_cpi(
         .collect();
 
     let bump = bumps.get("pda_signer").unwrap().to_le_bytes();
-    let seeds: &[&[_]] = &[&sender, &chain_id, bump.as_ref()];
+    let seeds: &[&[_]] = &[&sender, &chain_id.to_be_bytes(), bump.as_ref()];
     let signer = &[&seeds[..]];
     let accounts = remaining_accounts;
 

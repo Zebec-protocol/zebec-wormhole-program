@@ -46,6 +46,7 @@ pub struct RegisterChain<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(_sender:[u8;32], _chain_id:u16)]
 pub struct InitializePDA<'info> {
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
@@ -70,12 +71,20 @@ pub struct InitializePDA<'info> {
     /// CHECK: This account is owned by Core Bridge so we trust it
     pub core_bridge_vaa: AccountInfo<'info>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [
+            &_sender,
+            &_chain_id.to_be_bytes()
+        ],
+        bump
+    )]
     /// CHECK:: pda_account are checked inside
     pub pda_account: UncheckedAccount<'info>,
 }
 
 #[derive(Accounts)]
+#[instruction(_sender:[u8;32], _chain_id:u16)]
 pub struct InitializePDATokenAccount<'info> {
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
@@ -83,7 +92,6 @@ pub struct InitializePDATokenAccount<'info> {
     pub rent: Sysvar<'info, Rent>,
     pub token_program: Program<'info, Token>,   
     pub associated_token_program: Program<'info, AssociatedToken>,
-
 
     #[account(
         init,
@@ -106,7 +114,11 @@ pub struct InitializePDATokenAccount<'info> {
     pub core_bridge_vaa: AccountInfo<'info>,
 
     ///CHECK:: pda_account are checked inside
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds=[&_sender, &_chain_id.to_be_bytes()], 
+        bump
+    )]
     pub pda_account: UncheckedAccount<'info>,
 
     #[account(
@@ -164,7 +176,7 @@ pub struct CreateTransaction<'info> {
     pid: Pubkey,
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
-    chain_id: Vec<u8>,
+    chain_id: u16,
     sender: [u8; 32],
     current_count: u8
 )]
@@ -192,7 +204,7 @@ pub struct CETransaction<'info> {
         mut,
         seeds = [
             &sender,
-            &chain_id
+            &chain_id.to_be_bytes()
         ],
         bump
     )]
@@ -213,7 +225,7 @@ pub struct CETransaction<'info> {
 #[derive(Accounts)]
 #[instruction( 
     sender: [u8; 32],
-    chain_id: Vec<u8>,
+    chain_id: u16,
     current_count: u8
 )]
 pub struct DirectTransferNative<'info> {
@@ -248,7 +260,7 @@ pub struct DirectTransferNative<'info> {
         mut,
         seeds = [
             &sender,
-            &chain_id
+            &chain_id.to_be_bytes()
         ],
         bump
     )]
@@ -369,7 +381,7 @@ pub struct DirectTransferNative<'info> {
 #[derive(Accounts)]
 #[instruction( 
     sender: [u8; 32],
-    sender_chain: Vec<u8>,
+    sender_chain: u16,
     _token_address: Vec<u8>,
     _token_chain: u16,
     current_count: u8
@@ -407,7 +419,7 @@ pub struct DirectTransferWrapped<'info> {
         mut,
         seeds = [
             &sender,
-            &sender_chain
+            &sender_chain.to_be_bytes()
         ],
         bump
     )]
@@ -642,7 +654,7 @@ pub struct StoreMsg<'info>{
 #[derive(Accounts)]
 #[instruction(  
     eth_add:[u8; 32],
-    from_chain_id: Vec<u8>,
+    from_chain_id: u16,
     _current_count: u8
 )]
 pub struct ExecuteTransaction<'info> {
@@ -653,7 +665,7 @@ pub struct ExecuteTransaction<'info> {
         mut,
         seeds = [
             &eth_add,
-            &from_chain_id
+            &from_chain_id.to_be_bytes()
         ],
         bump
     )]

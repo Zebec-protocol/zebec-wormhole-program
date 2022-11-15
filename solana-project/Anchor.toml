@@ -2,14 +2,14 @@
 seeds = false
 
 [programs.devnet]
-solana_project = "F56A1FPDGsNUrqHNjmHZ36txyDTY8VYA7UEWV4SwxQAF"
+solana_project = "3hyoKShH2xk4hB5gXp6J3dyMEtxdzpj1SSScP1LsRzN8"
 
 [registry]
 url = "https://anchor.projectserum.com"
 
 [provider]
 cluster = "devnet"
-wallet = "~/.config/solana/id.json" 
+wallet = "./post_audit.json" 
 
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
