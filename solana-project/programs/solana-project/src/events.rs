@@ -1,12 +1,12 @@
 use anchor_lang::prelude::*;
 
 #[event]
-pub struct InitializedPDA{
-    pub pda: Pubkey
+pub struct InitializedPDA {
+    pub pda: Pubkey,
 }
 
 #[event]
-pub struct InitializedPDATokenAccount{
+pub struct InitializedPDATokenAccount {
     pub pda: Pubkey,
     pub token_mint: Pubkey,
 }
@@ -51,16 +51,17 @@ pub struct PausedResumed {
 #[event]
 pub struct DirectTransferredNative {
     pub sender: [u8; 32],
-    pub sender_chain: Vec<u8>,
+    pub sender_chain: u16,
     pub target_chain: u16,
     pub receiver: Vec<u8>,
     pub current_count: u64
+
 }
 
 #[event]
 pub struct DirectTransferredWrapped {
     pub sender: [u8; 32],
-    pub sender_chain: Vec<u8>,
+    pub sender_chain: u16,
     pub target_chain: u16,
     pub receiver: Vec<u8>,
     pub current_count: u64,
@@ -98,7 +99,7 @@ pub struct ReceiverWithdrawCreated {
 
 #[event]
 pub struct ExecutedTransaction {
-    pub from_chain_id: Vec<u8>,
+    pub from_chain_id: u16,
     pub eth_add: [u8; 32],
     pub transaction: Pubkey,
 }
