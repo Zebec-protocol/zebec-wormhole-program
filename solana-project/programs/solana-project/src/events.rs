@@ -53,7 +53,7 @@ pub struct DirectTransferredNative {
     pub sender: [u8; 32],
     pub sender_chain: u16,
     pub target_chain: u16,
-    pub receiver: Vec<u8>,
+    pub receiver: [u8; 32],
     pub current_count: u64
 
 }
@@ -63,7 +63,7 @@ pub struct DirectTransferredWrapped {
     pub sender: [u8; 32],
     pub sender_chain: u16,
     pub target_chain: u16,
-    pub receiver: Vec<u8>,
+    pub receiver: [u8; 32],
     pub current_count: u64,
 }
 

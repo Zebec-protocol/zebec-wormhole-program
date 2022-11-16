@@ -277,15 +277,15 @@ pub mod solana_project {
 
         // Switch Based on the code
         match code {
-            2 => process_stream(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
-            4 => process_withdraw_stream(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
-            6 => process_deposit(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
-            8 => process_pause(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
-            10 => process_withdraw(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
-            12 => process_instant_transfer(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
-            14 => process_update_stream(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
-            16 => process_cancel_stream(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
-            17 => process_direct_transfer(encoded_str, vaa.emitter_chain, ctx, sender.to_vec()),
+            2 => process_stream(encoded_str, vaa.emitter_chain, ctx, sender),
+            4 => process_withdraw_stream(encoded_str, vaa.emitter_chain, ctx, sender),
+            6 => process_deposit(encoded_str, vaa.emitter_chain, ctx, sender),
+            8 => process_pause(encoded_str, vaa.emitter_chain, ctx, sender),
+            10 => process_withdraw(encoded_str, vaa.emitter_chain, ctx, sender),
+            12 => process_instant_transfer(encoded_str, vaa.emitter_chain, ctx, sender),
+            14 => process_update_stream(encoded_str, vaa.emitter_chain, ctx, sender),
+            16 => process_cancel_stream(encoded_str, vaa.emitter_chain, ctx, sender),
+            17 => process_direct_transfer(encoded_str, vaa.emitter_chain, ctx, sender),
             _ => return Err(MessengerError::InvalidPayload.into()),
         }
     }
@@ -323,7 +323,7 @@ pub mod solana_project {
         let pda_sender_passed: Pubkey = accs[1].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
         require!(
-            sender.to_vec() == sender_stored,
+            sender == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
@@ -402,7 +402,7 @@ pub mod solana_project {
         let pda_sender_passed: Pubkey = accs[5].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
         require!(
-            sender.to_vec() == sender_stored,
+            sender == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
@@ -503,7 +503,7 @@ pub mod solana_project {
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
         require!(
-            sender.to_vec() == sender_stored,
+            sender == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
@@ -601,7 +601,7 @@ pub mod solana_project {
         let pda_sender_passed: Pubkey = accs[0].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
         require!(
-            sender.to_vec() == sender_stored,
+            sender == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
@@ -693,7 +693,7 @@ pub mod solana_project {
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
         let receiver_stored = ctx.accounts.data_storage.receiver.clone();
         require!(
-            sender.to_vec() == receiver_stored,
+            sender == receiver_stored,
             MessengerError::PdaReceiverMismatch
         );
 
@@ -757,7 +757,7 @@ pub mod solana_project {
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
         require!(
-            sender.to_vec() == sender_stored,
+            sender == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
@@ -825,7 +825,7 @@ pub mod solana_project {
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
         require!(
-            sender.to_vec() == sender_stored,
+            sender == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
@@ -887,7 +887,7 @@ pub mod solana_project {
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender.clone();
         require!(
-            sender.to_vec() == sender_stored,
+            sender == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
@@ -955,7 +955,7 @@ pub mod solana_project {
         //check sender
         let sender_stored = ctx.accounts.data_storage.sender.clone();
         require!(
-            sender.to_vec() == sender_stored,
+            sender == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
@@ -974,9 +974,9 @@ pub mod solana_project {
 
         emit!(DirectTransferredNative {
             sender: sender,
-            sender_chain: chain_id.clone(),
+            sender_chain: chain_id,
             target_chain: target_chain,
-            receiver: receiver_stored.clone(),
+            receiver: receiver_stored,
             current_count: current_count
         });
 
@@ -1004,14 +1004,14 @@ pub mod solana_project {
         //check sender
         let sender_stored = ctx.accounts.data_storage.sender.clone();
         require!(
-            sender.to_vec() == sender_stored,
+            sender == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
         //check sender
         let sender_stored = ctx.accounts.data_storage.sender.clone();
         require!(
-            sender.to_vec() == sender_stored,
+            sender == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
@@ -1030,15 +1030,15 @@ pub mod solana_project {
 
         emit!(DirectTransferredWrapped {
             sender: sender,
-            sender_chain: sender_chain.clone(),
+            sender_chain: sender_chain,
             target_chain: target_chain,
-            receiver: receiver_stored.clone(),
+            receiver: receiver_stored,
             current_count: current_count,
         });
 
         transfer_wrapped(
             ctx,
-            sender.to_vec(),
+            sender,
             sender_chain,
             target_chain,
             fee,
@@ -1092,11 +1092,11 @@ pub mod solana_project {
 
     pub fn transfer_wrapped(
         ctx: Context<DirectTransferWrapped>,
-        sender: Vec<u8>,
+        sender: [u8; 32],
         sender_chain: u16,
         target_chain: u16,
         fee: u64,
-        receiver: Vec<u8>,
+        receiver: [u8; 32],
     ) -> Result<()> {
         let amount = ctx.accounts.data_storage.amount;
 
@@ -1202,7 +1202,7 @@ pub mod solana_project {
         sender_chain: u16,
         target_chain: u16,
         fee: u64,
-        receiver: Vec<u8>,
+        receiver: [u8;32],
     ) -> Result<()> {
         let amount = ctx.accounts.data_storage.amount;
         //Check EOA
@@ -1318,6 +1318,11 @@ fn get_u8(data_bytes: Vec<u8>) -> u64 {
     u64::from_be_bytes(data_u8)
 }
 
+fn get_u32_array(data_bytes: Vec<u8>) -> [u8;32]{
+    let data_result = data_bytes.try_into().unwrap();
+    return data_result;
+}
+
 // Convert a full VAA structure into the serialization of its unique components, this structure is
 // what is hashed and verified by Guardians.
 pub fn serialize_vaa(vaa: &MessageData) -> Vec<u8> {
@@ -1336,17 +1341,17 @@ fn process_deposit(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
     ctx: Context<StoreMsg>,
-    sender: Vec<u8>,
+    sender: [u8;32],
 ) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
     let to_chain_id = get_u256(encoded_str[9..41].to_vec());
-    let senderbytes = encoded_str[41..73].to_vec();
-    let token_mint_bytes = &encoded_str[73..105].to_vec();
+    let senderbytes = get_u32_array(encoded_str[41..73].to_vec());
+    let token_mint_bytes = encoded_str[73..105].to_vec();
 
     transaction_data.amount = amount;
-    transaction_data.sender = senderbytes.clone();
+    transaction_data.sender = senderbytes;
     transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint_bytes);
 
@@ -1362,15 +1367,15 @@ fn process_stream(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
     ctx: Context<StoreMsg>,
-    sender: Vec<u8>,
+    sender: [u8;32]
 ) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
     let amount = get_u64(encoded_str[17..25].to_vec());
     let to_chain_id = get_u256(encoded_str[25..57].to_vec());
-    let senderwallet_bytes = encoded_str[57..89].to_vec();
-    let receiver_wallet_bytes = encoded_str[89..121].to_vec();
+    let senderwallet_bytes = get_u32_array(encoded_str[57..89].to_vec());
+    let receiver_wallet_bytes = get_u32_array(encoded_str[89..121].to_vec());
     let can_update = get_u64(encoded_str[121..129].to_vec());
     let can_cancel = get_u64(encoded_str[129..137].to_vec());
     let token_mint_bytes = &encoded_str[137..169].to_vec();
@@ -1382,7 +1387,7 @@ fn process_stream(
     transaction_data.can_cancel = can_cancel == 1;
 
     transaction_data.amount = amount;
-    transaction_data.sender = senderwallet_bytes.clone();
+    transaction_data.sender = senderwallet_bytes;
     transaction_data.receiver = receiver_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint_bytes);
@@ -1402,22 +1407,22 @@ fn process_update_stream(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
     ctx: Context<StoreMsg>,
-    sender: Vec<u8>,
+    sender: [u8;32],
 ) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
     let amount = get_u64(encoded_str[17..25].to_vec());
     let to_chain_id = get_u256(encoded_str[25..57].to_vec());
-    let senderwallet_bytes = encoded_str[57..89].to_vec();
-    let receiver_wallet_bytes = encoded_str[89..121].to_vec();
+    let senderwallet_bytes = get_u32_array(encoded_str[57..89].to_vec());
+    let receiver_wallet_bytes = get_u32_array(encoded_str[89..121].to_vec());
     let token_mint = &encoded_str[121..153].to_vec();
     let data_account = &encoded_str[153..185].to_vec();
 
     transaction_data.start_time = start_time;
     transaction_data.end_time = end_time;
     transaction_data.amount = amount;
-    transaction_data.sender = senderwallet_bytes.clone();
+    transaction_data.sender = senderwallet_bytes;
     transaction_data.receiver = receiver_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
@@ -1438,16 +1443,16 @@ fn process_pause(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
     ctx: Context<StoreMsg>,
-    sender: Vec<u8>,
+    sender: [u8;32],
 ) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let to_chain_id = get_u256(encoded_str[1..33].to_vec());
-    let depositor_wallet_bytes = encoded_str[33..65].to_vec();
+    let depositor_wallet_bytes = get_u32_array(encoded_str[33..65].to_vec());
     let token_mint = encoded_str[65..97].to_vec();
-    let receiver_wallet_bytes = encoded_str[97..129].to_vec();
+    let receiver_wallet_bytes = get_u32_array(encoded_str[97..129].to_vec());
     let data_account = encoded_str[129..161].to_vec();
 
-    transaction_data.sender = depositor_wallet_bytes.clone();
+    transaction_data.sender = depositor_wallet_bytes;
     transaction_data.receiver = receiver_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
@@ -1469,23 +1474,23 @@ fn process_withdraw_stream(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
     ctx: Context<StoreMsg>,
-    receiver: Vec<u8>,
+    receiver: [u8; 32],
 ) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let to_chain_id = get_u256(encoded_str[1..33].to_vec());
-    let withdrawer_wallet_bytes = encoded_str[33..65].to_vec();
+    let withdrawer_wallet_bytes = get_u32_array(encoded_str[33..65].to_vec());
     let token_mint = encoded_str[65..97].to_vec();
-    let depositor_wallet_bytes = encoded_str[97..129].to_vec();
+    let depositor_wallet_bytes = get_u32_array(encoded_str[97..129].to_vec());
     let data_account = encoded_str[129..161].to_vec();
 
     transaction_data.sender = depositor_wallet_bytes;
-    transaction_data.receiver = withdrawer_wallet_bytes.clone();
+    transaction_data.receiver = withdrawer_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
 
     require!(
-        withdrawer_wallet_bytes.to_vec() == receiver,
+        withdrawer_wallet_bytes == receiver,
         MessengerError::InvalidSenderWallet
     );
     require!(
@@ -1500,16 +1505,16 @@ fn process_cancel_stream(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
     ctx: Context<StoreMsg>,
-    sender: Vec<u8>,
+    sender: [u8;32],
 ) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let to_chain_id = get_u256(encoded_str[1..33].to_vec());
-    let depositor_wallet_bytes = encoded_str[33..65].to_vec();
+    let depositor_wallet_bytes = get_u32_array(encoded_str[33..65].to_vec());
     let token_mint = encoded_str[65..97].to_vec();
-    let receiver_wallet_bytes = encoded_str[97..129].to_vec();
+    let receiver_wallet_bytes = get_u32_array(encoded_str[97..129].to_vec());
     let data_account = encoded_str[129..161].to_vec();
 
-    transaction_data.sender = depositor_wallet_bytes.clone();
+    transaction_data.sender = depositor_wallet_bytes;
     transaction_data.receiver = receiver_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
@@ -1532,15 +1537,15 @@ fn process_withdraw(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
     ctx: Context<StoreMsg>,
-    sender: Vec<u8>,
+    sender: [u8;32],
 ) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
     let amount = get_u64(encoded_str[1..9].to_vec());
     let to_chain_id = get_u256(encoded_str[9..41].to_vec());
-    let withdrawer_wallet_bytes = encoded_str[41..73].to_vec();
+    let withdrawer_wallet_bytes = get_u32_array(encoded_str[41..73].to_vec());
     let token_mint = encoded_str[73..105].to_vec();
 
-    transaction_data.sender = withdrawer_wallet_bytes.clone();
+    transaction_data.sender = withdrawer_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.amount = amount;
@@ -1560,17 +1565,17 @@ fn process_instant_transfer(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
     ctx: Context<StoreMsg>,
-    sender: Vec<u8>,
+    sender: [u8;32],
 ) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
     let to_chain_id = get_u256(encoded_str[9..41].to_vec());
-    let senderwallet_bytes = encoded_str[41..73].to_vec();
+    let senderwallet_bytes = get_u32_array(encoded_str[41..73].to_vec());
     let token_mint = encoded_str[73..105].to_vec();
-    let withdrawer_wallet_bytes = encoded_str[105..137].to_vec();
+    let withdrawer_wallet_bytes = get_u32_array(encoded_str[105..137].to_vec());
 
-    transaction_data.sender = senderwallet_bytes.clone();
+    transaction_data.sender = senderwallet_bytes;
     transaction_data.receiver = withdrawer_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
@@ -1591,17 +1596,17 @@ fn process_direct_transfer(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
     ctx: Context<StoreMsg>,
-    sender: Vec<u8>,
+    sender: [u8;32],
 ) -> Result<()> {
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
     let to_chain_id = get_u256(encoded_str[9..41].to_vec());
-    let senderwallet_bytes = encoded_str[41..73].to_vec();
+    let senderwallet_bytes = get_u32_array(encoded_str[41..73].to_vec());
     let token_mint = encoded_str[73..105].to_vec();
-    let withdrawer_wallet_bytes = encoded_str[105..137].to_vec();
+    let withdrawer_wallet_bytes = get_u32_array(encoded_str[105..137].to_vec());
 
-    transaction_data.sender = senderwallet_bytes.clone();
+    transaction_data.sender = senderwallet_bytes;
     transaction_data.receiver = withdrawer_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
