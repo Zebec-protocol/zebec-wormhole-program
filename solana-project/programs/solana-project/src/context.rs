@@ -226,13 +226,13 @@ pub struct CETransaction<'info> {
 #[instruction( 
     sender: [u8; 32],
     chain_id: u16,
-    current_count: u8
+    current_count: u64,
 )]
 pub struct DirectTransferNative<'info> {
     // One of the owners. Checked in the handler.
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
-
+    
    #[account(
         mut,
         seeds = [
@@ -384,7 +384,7 @@ pub struct DirectTransferNative<'info> {
     sender_chain: u16,
     _token_address: Vec<u8>,
     _token_chain: u16,
-    current_count: u64
+    current_count: u64,
 )]
 pub struct DirectTransferWrapped<'info> {
     // One of the owners. Checked in the handler.
@@ -546,7 +546,7 @@ pub struct DirectTransferWrapped<'info> {
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     sender: [u8; 32],
-    current_count: u64
+    _current_count: u64
 )]
 pub struct CreateTransactionReceiver<'info> {
     #[account(zero, signer)]
@@ -561,7 +561,7 @@ pub struct CreateTransactionReceiver<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &current_count.to_be_bytes()
+            &_current_count.to_be_bytes()
         ],
         bump
     )]
@@ -573,7 +573,7 @@ pub struct CreateTransactionReceiver<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &current_count.to_be_bytes()
+            &_current_count.to_be_bytes()
         ],
         bump
     )]
@@ -655,7 +655,7 @@ pub struct StoreMsg<'info>{
 #[instruction(  
     eth_add:[u8; 32],
     from_chain_id: u16,
-    current_count: u8
+    _current_count: u64
 )]
 pub struct ExecuteTransaction<'info> {
     pub system_program: Program<'info, System>,
@@ -678,7 +678,7 @@ pub struct ExecuteTransaction<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &eth_add,
-            &current_count.to_be_bytes()
+            &_current_count.to_be_bytes()
         ],
         bump
     )]

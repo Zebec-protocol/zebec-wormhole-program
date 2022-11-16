@@ -206,7 +206,7 @@ pub mod solana_project {
             to_chain_id == U256::from_str("1").unwrap(),
             MessengerError::InvalidToChainId
         );
-        
+
         require!(
             account_pda == ctx.accounts.pda_account.key(),
             MessengerError::InvalidPDAAccount
@@ -657,7 +657,7 @@ pub mod solana_project {
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
-        current_count: u64,
+        _current_count: u64,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -935,10 +935,8 @@ pub mod solana_project {
     pub fn transaction_direct_transfer_native(
         ctx: Context<DirectTransferNative>,
         sender: [u8; 32],
-
         chain_id: u16,
         current_count: u64,
-
         target_chain: u16,
         fee: u64,
     ) -> Result<()> {
@@ -1053,7 +1051,7 @@ pub mod solana_project {
         eth_add: [u8; 32],
 
         from_chain_id: u16,
-        current_count: u64,
+        _current_count: u64,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -1349,7 +1347,7 @@ fn process_deposit(
 
     transaction_data.amount = amount;
     transaction_data.sender = senderbytes.clone();
-    transaction_data.from_chain_id = from_chain_id as u64;
+    transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint_bytes);
 
     require!(senderbytes == sender, MessengerError::InvalidSenderWallet);
@@ -1386,7 +1384,7 @@ fn process_stream(
     transaction_data.amount = amount;
     transaction_data.sender = senderwallet_bytes.clone();
     transaction_data.receiver = receiver_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id as u64;
+    transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint_bytes);
 
     require!(
@@ -1421,7 +1419,7 @@ fn process_update_stream(
     transaction_data.amount = amount;
     transaction_data.sender = senderwallet_bytes.clone();
     transaction_data.receiver = receiver_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id as u64;
+    transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
 
@@ -1451,7 +1449,7 @@ fn process_pause(
 
     transaction_data.sender = depositor_wallet_bytes.clone();
     transaction_data.receiver = receiver_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id as u64;
+    transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
 
@@ -1482,7 +1480,7 @@ fn process_withdraw_stream(
 
     transaction_data.sender = depositor_wallet_bytes;
     transaction_data.receiver = withdrawer_wallet_bytes.clone();
-    transaction_data.from_chain_id = from_chain_id as u64;
+    transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
 
@@ -1513,7 +1511,7 @@ fn process_cancel_stream(
 
     transaction_data.sender = depositor_wallet_bytes.clone();
     transaction_data.receiver = receiver_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id as u64;
+    transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.data_account = Pubkey::new(&data_account);
 
@@ -1543,7 +1541,7 @@ fn process_withdraw(
     let token_mint = encoded_str[73..105].to_vec();
 
     transaction_data.sender = withdrawer_wallet_bytes.clone();
-    transaction_data.from_chain_id = from_chain_id as u64;
+    transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.amount = amount;
 
@@ -1574,7 +1572,7 @@ fn process_instant_transfer(
 
     transaction_data.sender = senderwallet_bytes.clone();
     transaction_data.receiver = withdrawer_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id as u64;
+    transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.amount = amount;
 
@@ -1605,7 +1603,7 @@ fn process_direct_transfer(
 
     transaction_data.sender = senderwallet_bytes.clone();
     transaction_data.receiver = withdrawer_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id as u64;
+    transaction_data.from_chain_id = from_chain_id;
     transaction_data.token_mint = Pubkey::new(&token_mint);
     transaction_data.amount = amount;
 
