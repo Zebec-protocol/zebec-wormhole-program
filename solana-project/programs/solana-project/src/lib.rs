@@ -657,7 +657,7 @@ pub mod solana_project {
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
-        _current_count: u64,
+        current_count: u64,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,
@@ -1053,7 +1053,7 @@ pub mod solana_project {
         eth_add: [u8; 32],
 
         from_chain_id: u16,
-        _current_count: u64,
+        current_count: u64,
     ) -> Result<()> {
         require!(
             !ctx.accounts.txn_status.executed,

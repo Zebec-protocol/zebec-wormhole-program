@@ -546,7 +546,7 @@ pub struct DirectTransferWrapped<'info> {
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     sender: [u8; 32],
-    _current_count: u64
+    current_count: u64
 )]
 pub struct CreateTransactionReceiver<'info> {
     #[account(zero, signer)]
@@ -561,7 +561,7 @@ pub struct CreateTransactionReceiver<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &_current_count.to_le_bytes()
+            &current_count.to_be_bytes()
         ],
         bump
     )]
@@ -573,7 +573,7 @@ pub struct CreateTransactionReceiver<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &_current_count.to_le_bytes()
+            &current_count.to_be_bytes()
         ],
         bump
     )]
@@ -655,7 +655,7 @@ pub struct StoreMsg<'info>{
 #[instruction(  
     eth_add:[u8; 32],
     from_chain_id: u16,
-    _current_count: u8
+    current_count: u8
 )]
 pub struct ExecuteTransaction<'info> {
     pub system_program: Program<'info, System>,
@@ -678,7 +678,7 @@ pub struct ExecuteTransaction<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &eth_add,
-            &_current_count.to_le_bytes()
+            &current_count.to_be_bytes()
         ],
         bump
     )]
