@@ -60,7 +60,7 @@ pub struct InitializePDA<'info> {
         ],
         payer=zebec_eoa,
         bump,
-        space=8 + 4
+        space=8 + 8
     )]
     pub processed_vaa: Account<'info, ProcessedVAA>,
     pub emitter_acc: Account<'info, EmitterAddrAccount>,

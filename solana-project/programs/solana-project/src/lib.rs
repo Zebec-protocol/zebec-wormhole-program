@@ -35,7 +35,7 @@ use std::ops::Deref;
 
 use anchor_lang::solana_program::program::invoke_signed;
 
-declare_id!("2RVwrxGrKAQxocTy93P6vy8qoVd4XQoKHw81Cw9AqGS1");
+declare_id!("GNxTdcqwJMPmbNGx9KN5EhtL8PniKUTXA9zuU197uwmg");
 
 #[program]
 pub mod solana_project {
@@ -225,71 +225,69 @@ pub mod solana_project {
 
     pub fn store_msg(ctx: Context<StoreMsg>, current_count: u64, sender: [u8; 32]) -> Result<()> {
         //Hash a VAA Extract and derive a VAA Key
-        // let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
-        // let serialized_vaa = serialize_vaa(&vaa);
+        let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
+        let serialized_vaa = serialize_vaa(&vaa);
 
-        // let mut h = sha3::Keccak256::default();
-        // h.write_all(serialized_vaa.as_slice()).unwrap();
-        // let vaa_hash: [u8; 32] = h.finalize().into();
+        let mut h = sha3::Keccak256::default();
+        h.write_all(serialized_vaa.as_slice()).unwrap();
+        let vaa_hash: [u8; 32] = h.finalize().into();
 
-        // let vaa_key = Pubkey::find_program_address(
-        //     &[b"PostedVAA", &vaa_hash],
-        //     &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
-        // )
-        // .0;
+        let vaa_key = Pubkey::find_program_address(
+            &[b"PostedVAA", &vaa_hash],
+            &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
+        )
+        .0;
 
-        // require!(
-        //     ctx.accounts.core_bridge_vaa.key() == vaa_key,
-        //     MessengerError::VAAKeyMismatch
-        // );
+        require!(
+            ctx.accounts.core_bridge_vaa.key() == vaa_key,
+            MessengerError::VAAKeyMismatch
+        );
 
-        // // Already checked that the SignedVaa is owned by core bridge in account constraint logic
-        // // Check that the emitter chain and address match up with the vaa
-        // require!(
-        //     vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
-        //         && vaa.emitter_address
-        //             == &decode(&ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
-        //     MessengerError::VAAEmitterMismatch
-        // );
+        // Already checked that the SignedVaa is owned by core bridge in account constraint logic
+        // Check that the emitter chain and address match up with the vaa
+        require!(
+            vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
+                && vaa.emitter_address
+                    == &decode(&ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            MessengerError::VAAEmitterMismatch
+        );
 
-        // // Encoded String
-        // let encoded_str = vaa.payload.clone();
+        // Encoded String
+        let encoded_str = vaa.payload.clone();
 
-        // // Decode Encoded String and Store Value based upon the code sent on message passing
-        // let code = get_u8(encoded_str[0..1].to_vec());
+        // Decode Encoded String and Store Value based upon the code sent on message passing
+        let code = get_u8(encoded_str[0..1].to_vec());
 
-        // // Change Transaction Count to Current Count
-        // let txn_count = &mut ctx.accounts.txn_count;
-        // let sum = txn_count.count.checked_add(1);
+        // Change Transaction Count to Current Count
+        let txn_count = &mut ctx.accounts.txn_count;
+        let sum = txn_count.count.checked_add(1);
 
-        // match sum {
-        //     None => return Err(MessengerError::Overflow.into()),
-        //     Some(val) => txn_count.count = val,
-        // }
+        match sum {
+            None => return Err(MessengerError::Overflow.into()),
+            Some(val) => txn_count.count = val,
+        }
 
-        // ctx.accounts.processed_vaa.transaction_count = txn_count.count;
+        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
-        // emit!(StoredMsg {
-        //     msg_type: code,
-        //     sender: sender,
-        //     count: current_count
-        // });
+        emit!(StoredMsg {
+            msg_type: code,
+            sender: sender,
+            count: current_count
+        });
 
-        // msg!("Here 0");
-        // // Switch Based on the code
-        // match code {
-        //     2 => process_stream(encoded_str, vaa.emitter_chain, ctx, sender),
-        //     4 => process_withdraw_stream(encoded_str, vaa.emitter_chain, ctx, sender),
-        //     6 => process_deposit(encoded_str, vaa.emitter_chain, ctx, sender),
-        //     8 => process_pause(encoded_str, vaa.emitter_chain, ctx, sender),
-        //     10 => process_withdraw(encoded_str, vaa.emitter_chain, ctx, sender),
-        //     12 => process_instant_transfer(encoded_str, vaa.emitter_chain, ctx, sender),
-        //     14 => process_update_stream(encoded_str, vaa.emitter_chain, ctx, sender),
-        //     16 => process_cancel_stream(encoded_str, vaa.emitter_chain, ctx, sender),
-        //     17 => process_direct_transfer(encoded_str, vaa.emitter_chain, ctx, sender),
-        //     _ => return Err(MessengerError::InvalidPayload.into()),
-        // }
-        Ok(())
+        // Switch Based on the code
+        match code {
+            2 => process_stream(encoded_str, vaa.emitter_chain, ctx, sender),
+            4 => process_withdraw_stream(encoded_str, vaa.emitter_chain, ctx, sender),
+            6 => process_deposit(encoded_str, vaa.emitter_chain, ctx, sender),
+            8 => process_pause(encoded_str, vaa.emitter_chain, ctx, sender),
+            10 => process_withdraw(encoded_str, vaa.emitter_chain, ctx, sender),
+            12 => process_instant_transfer(encoded_str, vaa.emitter_chain, ctx, sender),
+            14 => process_update_stream(encoded_str, vaa.emitter_chain, ctx, sender),
+            16 => process_cancel_stream(encoded_str, vaa.emitter_chain, ctx, sender),
+            17 => process_direct_transfer(encoded_str, vaa.emitter_chain, ctx, sender),
+            _ => return Err(MessengerError::InvalidPayload.into()),
+        }
     }
 
     //creates and executes deposit transaction
@@ -1107,7 +1105,6 @@ pub mod solana_project {
             ctx.accounts.config.owner == ctx.accounts.zebec_eoa.key(),
             MessengerError::InvalidCaller
         );
-        msg!("updated");
         let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
 
         let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain.to_be_bytes(), &bump]];
@@ -1345,7 +1342,7 @@ fn process_deposit(
     ctx: Context<StoreMsg>,
     sender: [u8;32],
 ) -> Result<()> {
-     msg!("Here Process Deposit");
+
     let transaction_data = &mut ctx.accounts.data_storage;
 
     let amount = get_u64(encoded_str[1..9].to_vec());
@@ -1372,7 +1369,6 @@ fn process_stream(
     ctx: Context<StoreMsg>,
     sender: [u8;32]
 ) -> Result<()> {
-     msg!("Here Process Stream");
     let transaction_data = &mut ctx.accounts.data_storage;
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
