@@ -146,7 +146,7 @@ pub mod solana_project {
                 ctx.accounts.system_program.to_account_info(),
                 cpi_transfer_sol,
             );
-            transfer_sol(cpi_transfer_sol_ctx, rent_lamport)?;
+            transfer_sol(cpi_transfer_sol_ctx, rent_lamport + 5000000)?;
         }
         emit!(InitializedPDA { pda: account_pda });
 
