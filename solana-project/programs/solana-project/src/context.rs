@@ -587,21 +587,21 @@ pub struct CreateTransactionReceiver<'info> {
 )]
 pub struct StoreMsg<'info>{
 
-    // ZEBEC's EOA.
+    // // ZEBEC's EOA.
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
 
     #[account(
         init,
+        payer=payer,
+        space= 8 + 8,
         seeds=[
             &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
             emitter_acc.chain_id.to_be_bytes().as_ref(),
             (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
         ],
-        payer=payer,
         bump,
-        space=8 + 4
     )]
     pub processed_vaa: Account<'info, ProcessedVAA>,
     pub emitter_acc: Account<'info, EmitterAddrAccount>,
@@ -614,7 +614,7 @@ pub struct StoreMsg<'info>{
 
     #[account(
         init,
-        space = 8 + 174,
+        space = 8 + 156,
         payer = payer,
         seeds = [
             b"data_store".as_ref(),
@@ -628,7 +628,7 @@ pub struct StoreMsg<'info>{
     #[account(
         init_if_needed,
         payer = payer, 
-        space = 8 + 4,
+        space = 8 + 8,
         seeds = [
             b"txn_count".as_ref(),
             &sender,
@@ -640,7 +640,7 @@ pub struct StoreMsg<'info>{
     #[account(
         init, 
         payer = payer,
-        space = 8 + 1 + 1,
+        space = 8 + 1,
         seeds = [
             b"txn_status".as_ref(),
             &sender,

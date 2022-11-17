@@ -2,7 +2,7 @@
 seeds = false
 
 [programs.devnet]
-solana_project = "3hyoKShH2xk4hB5gXp6J3dyMEtxdzpj1SSScP1LsRzN8"
+solana_project = "2RVwrxGrKAQxocTy93P6vy8qoVd4XQoKHw81Cw9AqGS1"
 
 [registry]
 url = "https://anchor.projectserum.com"
