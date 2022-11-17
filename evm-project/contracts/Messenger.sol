@@ -16,7 +16,8 @@ contract Messenger is Encoder {
 
     IWormhole public _wormhole;
     IWETH public _weth;
-    uint256 public _wormhole_fee;
+
+    uint256 public _arbiter_fee;
 
     // SOLANA CHAIN ID AS SPECIFIED AS WORMHOLE CONTRACT (https://book.wormhole.com/reference/contracts.html)
     uint256 SOLANA_CHAIN_ID = 1;
@@ -36,16 +37,15 @@ contract Messenger is Encoder {
     event PDAInitialize(bytes account, uint32 nonce);
     event TokenAccountInitialize(bytes account, bytes tokenMint, uint32 nonce);
 
-    constructor(address wormholeAddress, uint256 wormholeFee, address weth) {
+    constructor(address wormholeAddress, address weth, uint256 arbiter_fee) {
         _wormhole = IWormhole(wormholeAddress); //0x706abc4E45D419950511e474C7B9Ed348A4a716c
         _weth = IWETH(weth); //0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6
-        _wormhole_fee = wormholeFee;
         owner = msg.sender;
+        _arbiter_fee = arbiter_fee;
     }
 
     function initialize_pda(
-        bytes memory account,
-        uint256 arbiter_fee
+        bytes memory account
     ) public payable {
         nonce++;
         bytes memory encoded_data = Encoder.encode_initialize_pda(
@@ -57,15 +57,14 @@ contract Messenger is Encoder {
         _bridgeInstructionInWormhole(
             nonce,
             encoded_data,
-            arbiter_fee
+            _arbiter_fee
         );
         emit PDAInitialize(account, nonce);
     }
 
     function initialize_token_account(
         bytes memory account,
-        bytes memory token_mint,
-        uint256 arbiter_fee
+        bytes memory token_mint
     ) public payable  {
         nonce++;
         bytes memory encoded_data = Encoder.encode_initialize_token_account(
@@ -78,7 +77,7 @@ contract Messenger is Encoder {
         _bridgeInstructionInWormhole(
             nonce,
             encoded_data,
-            arbiter_fee
+            _arbiter_fee
         );   
         emit TokenAccountInitialize(account, token_mint, nonce); 
     }
@@ -86,8 +85,7 @@ contract Messenger is Encoder {
     function process_deposit_token(
         uint64 amount, 
         bytes memory depositor,
-        bytes memory token_mint,
-        uint256 arbiter_fee
+        bytes memory token_mint
     ) public payable {
         nonce++;
         bytes memory encoded_data = Encoder.encode_process_deposit_token(
@@ -101,7 +99,7 @@ contract Messenger is Encoder {
          _bridgeInstructionInWormhole(
             nonce,
             encoded_data,
-            arbiter_fee
+            _arbiter_fee
         );
         emit DepositToken(depositor, token_mint, amount, nonce);
     }
@@ -114,8 +112,7 @@ contract Messenger is Encoder {
         bytes memory sender,
         uint64 can_cancel,
         uint64 can_update,
-        bytes memory token_mint,
-        uint256 arbiter_fee
+        bytes memory token_mint
     ) public payable  {
         nonce++;
         bytes memory encoded_data = Encoder.encode_token_stream(
@@ -134,7 +131,7 @@ contract Messenger is Encoder {
          _bridgeInstructionInWormhole(
             nonce,
             encoded_data,
-            arbiter_fee
+            _arbiter_fee
         );
         emit TokenStream(sender, receiver, token_mint, amount, nonce);
     }
@@ -146,8 +143,7 @@ contract Messenger is Encoder {
         bytes memory receiver,
         bytes memory sender,
         bytes memory token_mint,
-        bytes memory data_account_address,
-        uint256 arbiter_fee
+        bytes memory data_account_address
     ) public payable  {
         nonce++;
         bytes memory encoded_data = Encoder.encode_token_stream_update(
@@ -165,7 +161,7 @@ contract Messenger is Encoder {
          _bridgeInstructionInWormhole(
             nonce,
             encoded_data,
-            arbiter_fee
+            _arbiter_fee
         );
         emit TokenStreamUpdate(sender, receiver, token_mint, amount, nonce);
     }
@@ -174,8 +170,7 @@ contract Messenger is Encoder {
         bytes memory withdrawer,
         bytes memory token_mint,
         bytes memory sender_address,
-        bytes memory data_account_address,
-        uint256 arbiter_fee
+        bytes memory data_account_address
     ) public payable  {
         nonce++;
         bytes memory encoded_data = Encoder.encode_token_withdraw_stream(
@@ -190,7 +185,7 @@ contract Messenger is Encoder {
          _bridgeInstructionInWormhole(
             nonce,
             encoded_data,
-            arbiter_fee
+            _arbiter_fee
         );
         emit WithdrawToken(withdrawer, token_mint, nonce);
     }
@@ -199,8 +194,7 @@ contract Messenger is Encoder {
         bytes memory sender,
         bytes memory token_mint,
         bytes memory reciever_address,
-        bytes memory data_account_address,
-        uint256 arbiter_fee
+        bytes memory data_account_address
     ) public payable  {
         nonce++;
         bytes memory encoded_data = Encoder.encode_process_pause_token_stream(
@@ -215,7 +209,7 @@ contract Messenger is Encoder {
          _bridgeInstructionInWormhole(
             nonce,
             encoded_data,
-            arbiter_fee
+            _arbiter_fee
         );
         emit PauseTokenStream(sender, token_mint, nonce);
     }
@@ -224,8 +218,7 @@ contract Messenger is Encoder {
         bytes memory sender,
         bytes memory token_mint,
         bytes memory reciever_address,
-        bytes memory data_account_address,
-        uint256 arbiter_fee
+        bytes memory data_account_address
     ) public payable  {
         nonce++;
         bytes memory encoded_data = Encoder.encode_process_cancel_token_stream(
@@ -240,7 +233,7 @@ contract Messenger is Encoder {
          _bridgeInstructionInWormhole(
             nonce,
             encoded_data,
-            arbiter_fee
+            _arbiter_fee
         );
         emit CancelTokenStream(sender, token_mint, nonce);
     }
@@ -250,8 +243,7 @@ contract Messenger is Encoder {
         uint64 amount, 
         bytes memory sender,
         bytes memory withdrawer,
-        bytes memory token_mint,
-        uint256 arbiter_fee
+        bytes memory token_mint
     ) public payable {
         nonce++;
         bytes memory encoded_data = Encoder.encode_process_instant_token_transfer(
@@ -266,7 +258,7 @@ contract Messenger is Encoder {
          _bridgeInstructionInWormhole(
             nonce,
             encoded_data,
-            arbiter_fee
+            _arbiter_fee
         );
         emit InstantTokenTransfer(sender, token_mint, amount, nonce);
     }
@@ -275,8 +267,7 @@ contract Messenger is Encoder {
     function process_token_withdrawal(
         uint64 amount, 
         bytes memory sender,
-        bytes memory token_mint,
-        uint256 arbiter_fee
+        bytes memory token_mint
     ) public payable {
         nonce++;
         bytes memory encoded_data = Encoder.encode_process_token_withdrawal(
@@ -290,7 +281,7 @@ contract Messenger is Encoder {
          _bridgeInstructionInWormhole(
             nonce,
             encoded_data,
-            arbiter_fee
+            _arbiter_fee
         );
         emit TokenWithdrawal(sender, token_mint, amount, nonce);
     }
@@ -299,8 +290,7 @@ contract Messenger is Encoder {
         uint64 amount, 
         bytes memory sender,
         bytes memory token_mint,
-        bytes memory receiver,
-        uint256 arbiter_fee
+        bytes memory receiver
     ) public payable {
         nonce++;
         bytes memory encoded_data = Encoder.encode_process_direct_transfer(
@@ -315,7 +305,7 @@ contract Messenger is Encoder {
          _bridgeInstructionInWormhole(
             nonce,
             encoded_data,
-            arbiter_fee
+            _arbiter_fee
         );
         emit DirectTransfer(sender, receiver, token_mint, amount, nonce);
     }
@@ -388,6 +378,11 @@ contract Messenger is Encoder {
         owner = _owner;
     }
 
+    function changeArbiterFee(uint256 fee) public {
+        require(msg.sender == owner, "Only owner can change admin!");
+        _arbiter_fee = fee;
+    }
+
     function claimEthAmount() public {
         require(msg.sender == owner, "Only owner can withdraw funds!");
         uint256 _contractBalance = address(this).balance;
@@ -405,4 +400,3 @@ contract Messenger is Encoder {
         require(_sent, "Failed to send Ether");
     }
 }
-
