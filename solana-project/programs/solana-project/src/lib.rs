@@ -35,7 +35,7 @@ use std::ops::Deref;
 
 use anchor_lang::solana_program::program::invoke_signed;
 
-declare_id!("GNxTdcqwJMPmbNGx9KN5EhtL8PniKUTXA9zuU197uwmg");
+declare_id!("2w1QMXDTsWCmpdPHfjrL9SbkKeh3K37WMqJQUfnXHzRh");
 
 #[program]
 pub mod solana_project {
