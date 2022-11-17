@@ -51,16 +51,18 @@ pub struct InitializePDA<'info> {
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
     pub system_program: Program<'info, System>,
+    
     #[account(
         init,
+        payer=zebec_eoa,
+        space=8 + 8,
         seeds=[
             &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
             emitter_acc.chain_id.to_be_bytes().as_ref(),
             (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
         ],
-        payer=zebec_eoa,
         bump,
-        space=8 + 8
+        
     )]
     pub processed_vaa: Account<'info, ProcessedVAA>,
     pub emitter_acc: Account<'info, EmitterAddrAccount>,
@@ -95,14 +97,14 @@ pub struct InitializePDATokenAccount<'info> {
 
     #[account(
         init,
+        payer=zebec_eoa,
+        space= 8 + 8,
         seeds=[
             &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
             emitter_acc.chain_id.to_be_bytes().as_ref(),
             (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
         ],
-        payer=zebec_eoa,
         bump,
-        space=8+4
     )]
     pub processed_vaa: Account<'info, ProcessedVAA>,
     pub emitter_acc: Account<'info, EmitterAddrAccount>,
