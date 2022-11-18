@@ -320,11 +320,10 @@ contract Messenger is Encoder {
 
         require(arbiterFee <= amount, "fee is bigger than amount minus wormhole fee");
 
-        uint256 normalizedAmount = normalizeAmount(amount, 18);
         uint256 normalizedArbiterFee = normalizeAmount(arbiterFee, 18);
 
         // refund dust
-        uint dust = amount - deNormalizeAmount(normalizedAmount, 18) - deNormalizeAmount(normalizedArbiterFee, 18);
+        uint dust = amount - deNormalizeAmount(normalizedArbiterFee, 18);
         if (dust > 0) {
             payable(msg.sender).transfer(dust);
         }
