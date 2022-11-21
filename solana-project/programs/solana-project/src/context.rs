@@ -144,7 +144,6 @@ pub struct InitializePDATokenAccount<'info> {
 pub struct CreateTransaction<'info> {
     #[account(zero, signer)]
     pub transaction: Box<Account<'info, Transaction>>,
-    // One of the owners. Checked in the handler.
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -185,7 +184,7 @@ pub struct CreateTransaction<'info> {
 pub struct CETransaction<'info> {
     #[account(zero, signer)]
     pub transaction: Box<Account<'info, Transaction>>,
-    // One of the owners. Checked in the handler.
+    
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -231,7 +230,7 @@ pub struct CETransaction<'info> {
     current_count: u64,
 )]
 pub struct DirectTransferNative<'info> {
-    // One of the owners. Checked in the handler.
+    
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
     
@@ -389,7 +388,7 @@ pub struct DirectTransferNative<'info> {
     current_count: u64,
 )]
 pub struct DirectTransferWrapped<'info> {
-    // One of the owners. Checked in the handler.
+    
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
 
@@ -553,7 +552,7 @@ pub struct DirectTransferWrapped<'info> {
 pub struct CreateTransactionReceiver<'info> {
     #[account(zero, signer)]
     pub transaction: Box<Account<'info, Transaction>>,
-    // One of the owners. Checked in the handler.
+    
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
     pub system_program: Program<'info, System>,
