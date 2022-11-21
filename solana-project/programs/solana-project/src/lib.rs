@@ -101,7 +101,7 @@ pub mod solana_project {
         require!(
             vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
                 && vaa.emitter_address
-                    == &decode(&ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+                    == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
             MessengerError::VAAEmitterMismatch
         );
 
@@ -182,7 +182,7 @@ pub mod solana_project {
         require!(
             vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
                 && vaa.emitter_address
-                    == &decode(&ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+                    == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
             MessengerError::VAAEmitterMismatch
         );
 
@@ -248,7 +248,7 @@ pub mod solana_project {
         require!(
             vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
                 && vaa.emitter_address
-                    == &decode(&ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+                    == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
             MessengerError::VAAEmitterMismatch
         );
 
@@ -330,9 +330,9 @@ pub mod solana_project {
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
-        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
         let derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == derived_pubkey.0,
             MessengerError::SenderDerivedKeyMismatch
@@ -413,9 +413,9 @@ pub mod solana_project {
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
-        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::SenderDerivedKeyMismatch
@@ -425,7 +425,7 @@ pub mod solana_project {
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
         let chain_id_seed = chain_id_stored.to_be_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], &ctx.program_id);
+            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
         require!(
             pda_receiver_passed == receiver_derived_pubkey.0,
             MessengerError::ReceiverDerivedKeyMismatch
@@ -514,9 +514,9 @@ pub mod solana_project {
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
-        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::SenderDerivedKeyMismatch
@@ -612,9 +612,9 @@ pub mod solana_project {
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
-        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::SenderDerivedKeyMismatch
@@ -768,9 +768,9 @@ pub mod solana_project {
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
-        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::SenderDerivedKeyMismatch
@@ -832,9 +832,9 @@ pub mod solana_project {
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
-        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::SenderDerivedKeyMismatch
@@ -898,9 +898,9 @@ pub mod solana_project {
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
-        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::SenderDerivedKeyMismatch
@@ -965,9 +965,9 @@ pub mod solana_project {
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
-        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
         let (sender_derived_pubkey, _): (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
         require!(
             ctx.accounts.pda_signer.key() == sender_derived_pubkey,
             MessengerError::SenderDerivedKeyMismatch
@@ -1014,9 +1014,9 @@ pub mod solana_project {
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
-        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
         let (sender_derived_pubkey, _): (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender, &chain_id_seed], &ctx.program_id);
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
         require!(
             ctx.accounts.pda_signer.key() == sender_derived_pubkey,
             MessengerError::SenderDerivedKeyMismatch
@@ -1343,12 +1343,12 @@ fn process_deposit(
     let amount = get_u64(encoded_str[1..9].to_vec());
     let to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let senderbytes = get_u32_array(encoded_str[41..73].to_vec());
-    let token_mint_bytes = encoded_str[73..105].to_vec();
+    let token_mint_bytes = &encoded_str[73..105].to_vec();
 
     transaction_data.amount = amount;
     transaction_data.sender = senderbytes;
     transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(&token_mint_bytes);
+    transaction_data.token_mint = Pubkey::new(token_mint_bytes);
 
     require!(senderbytes == sender, MessengerError::InvalidSenderWallet);
     require!(
@@ -1385,7 +1385,7 @@ fn process_stream(
     transaction_data.sender = senderwallet_bytes;
     transaction_data.receiver = receiver_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(&token_mint_bytes);
+    transaction_data.token_mint = Pubkey::new(token_mint_bytes);
 
     require!(
         senderwallet_bytes == sender,
@@ -1420,8 +1420,8 @@ fn process_update_stream(
     transaction_data.sender = senderwallet_bytes;
     transaction_data.receiver = receiver_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(&token_mint);
-    transaction_data.data_account = Pubkey::new(&data_account);
+    transaction_data.token_mint = Pubkey::new(token_mint);
+    transaction_data.data_account = Pubkey::new(data_account);
 
     require!(
         senderwallet_bytes == sender,
@@ -1443,15 +1443,15 @@ fn process_pause(
     let transaction_data = &mut ctx.accounts.data_storage;
     let to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let depositor_wallet_bytes = get_u32_array(encoded_str[33..65].to_vec());
-    let token_mint = encoded_str[65..97].to_vec();
+    let token_mint = &encoded_str[65..97].to_vec();
     let receiver_wallet_bytes = get_u32_array(encoded_str[97..129].to_vec());
-    let data_account = encoded_str[129..161].to_vec();
+    let data_account = &encoded_str[129..161].to_vec();
 
     transaction_data.sender = depositor_wallet_bytes;
     transaction_data.receiver = receiver_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(&token_mint);
-    transaction_data.data_account = Pubkey::new(&data_account);
+    transaction_data.token_mint = Pubkey::new(token_mint);
+    transaction_data.data_account = Pubkey::new(data_account);
 
     require!(
         depositor_wallet_bytes == sender,
@@ -1474,15 +1474,15 @@ fn process_withdraw_stream(
     let transaction_data = &mut ctx.accounts.data_storage;
     let to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let withdrawer_wallet_bytes = get_u32_array(encoded_str[33..65].to_vec());
-    let token_mint = encoded_str[65..97].to_vec();
+    let token_mint = &encoded_str[65..97].to_vec();
     let depositor_wallet_bytes = get_u32_array(encoded_str[97..129].to_vec());
-    let data_account = encoded_str[129..161].to_vec();
+    let data_account = &encoded_str[129..161].to_vec();
 
     transaction_data.sender = depositor_wallet_bytes;
     transaction_data.receiver = withdrawer_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(&token_mint);
-    transaction_data.data_account = Pubkey::new(&data_account);
+    transaction_data.token_mint = Pubkey::new(token_mint);
+    transaction_data.data_account = Pubkey::new(data_account);
 
     require!(
         withdrawer_wallet_bytes == receiver,
@@ -1505,15 +1505,15 @@ fn process_cancel_stream(
     let transaction_data = &mut ctx.accounts.data_storage;
     let to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let depositor_wallet_bytes = get_u32_array(encoded_str[33..65].to_vec());
-    let token_mint = encoded_str[65..97].to_vec();
+    let token_mint = &encoded_str[65..97].to_vec();
     let receiver_wallet_bytes = get_u32_array(encoded_str[97..129].to_vec());
-    let data_account = encoded_str[129..161].to_vec();
+    let data_account = &encoded_str[129..161].to_vec();
 
     transaction_data.sender = depositor_wallet_bytes;
     transaction_data.receiver = receiver_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(&token_mint);
-    transaction_data.data_account = Pubkey::new(&data_account);
+    transaction_data.token_mint = Pubkey::new(token_mint);
+    transaction_data.data_account = Pubkey::new(data_account);
 
     require!(
         depositor_wallet_bytes == sender,
@@ -1538,11 +1538,11 @@ fn process_withdraw(
     let amount = get_u64(encoded_str[1..9].to_vec());
     let to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let withdrawer_wallet_bytes = get_u32_array(encoded_str[41..73].to_vec());
-    let token_mint = encoded_str[73..105].to_vec();
+    let token_mint = &encoded_str[73..105].to_vec();
 
     transaction_data.sender = withdrawer_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(&token_mint);
+    transaction_data.token_mint = Pubkey::new(token_mint);
     transaction_data.amount = amount;
 
     require!(
@@ -1567,13 +1567,13 @@ fn process_instant_transfer(
     let amount = get_u64(encoded_str[1..9].to_vec());
     let to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let senderwallet_bytes = get_u32_array(encoded_str[41..73].to_vec());
-    let token_mint = encoded_str[73..105].to_vec();
+    let token_mint = &encoded_str[73..105].to_vec();
     let withdrawer_wallet_bytes = get_u32_array(encoded_str[105..137].to_vec());
 
     transaction_data.sender = senderwallet_bytes;
     transaction_data.receiver = withdrawer_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(&token_mint);
+    transaction_data.token_mint = Pubkey::new(token_mint);
     transaction_data.amount = amount;
 
     require!(
@@ -1598,13 +1598,13 @@ fn process_direct_transfer(
     let amount = get_u64(encoded_str[1..9].to_vec());
     let to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let senderwallet_bytes = get_u32_array(encoded_str[41..73].to_vec());
-    let token_mint = encoded_str[73..105].to_vec();
+    let token_mint = &encoded_str[73..105].to_vec();
     let withdrawer_wallet_bytes = get_u32_array(encoded_str[105..137].to_vec());
 
     transaction_data.sender = senderwallet_bytes;
     transaction_data.receiver = withdrawer_wallet_bytes;
     transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(&token_mint);
+    transaction_data.token_mint = Pubkey::new(token_mint);
     transaction_data.amount = amount;
 
     require!(
