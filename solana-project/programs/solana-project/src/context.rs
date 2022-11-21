@@ -135,7 +135,6 @@ pub struct InitializePDATokenAccount<'info> {
 
 #[derive(Accounts)]
 #[instruction( 
-    pid: Pubkey,
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     sender: [u8; 32],
@@ -173,7 +172,6 @@ pub struct CreateTransaction<'info> {
 
 #[derive(Accounts)]
 #[instruction( 
-    pid: Pubkey,
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     chain_id: u16,
@@ -539,7 +537,6 @@ pub struct DirectTransferWrapped<'info> {
 
 #[derive(Accounts)]
 #[instruction( 
-    pid: Pubkey,
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     sender: [u8; 32],
