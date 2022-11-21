@@ -293,7 +293,7 @@ pub mod solana_project {
     //creates and executes deposit transaction
     pub fn transaction_deposit(
         ctx: Context<CETransaction>,
-        pid: Pubkey,
+        
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         chain_id: u16,
@@ -308,7 +308,7 @@ pub mod solana_project {
         transaction_status.executed = true;
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
-        tx.program_id = pid;
+        tx.program_id = Pubkey::from_str(ZEBEC_CONTRACT).unwrap();
         tx.accounts = accs.clone();
         tx.data = data.clone();
 
@@ -372,7 +372,7 @@ pub mod solana_project {
     //Txn size too high so spliting creation and execution
     pub fn create_transaction_stream(
         ctx: Context<CreateTransaction>,
-        pid: Pubkey,
+        
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
 
@@ -386,7 +386,7 @@ pub mod solana_project {
 
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
-        tx.program_id = pid;
+        tx.program_id = Pubkey::from_str(ZEBEC_CONTRACT).unwrap();
         tx.accounts = accs.clone();
         tx.did_execute = false;
         tx.data = data.clone();
@@ -465,7 +465,7 @@ pub mod solana_project {
     //creates and executes transaction stream update
     pub fn transaction_stream_update(
         ctx: Context<CETransaction>,
-        pid: Pubkey,
+        
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         chain_id: u16,
@@ -481,7 +481,7 @@ pub mod solana_project {
 
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
-        tx.program_id = pid;
+        tx.program_id = Pubkey::from_str(ZEBEC_CONTRACT).unwrap();
         tx.accounts = accs.clone();
         tx.data = data.clone();
 
@@ -571,7 +571,7 @@ pub mod solana_project {
     //creates and execute pause/resume stream
     pub fn transaction_pause_resume(
         ctx: Context<CETransaction>,
-        pid: Pubkey,
+        
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         chain_id: u16,
@@ -586,7 +586,7 @@ pub mod solana_project {
         transaction_status.executed = true;
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
-        tx.program_id = pid;
+        tx.program_id = Pubkey::from_str(ZEBEC_CONTRACT).unwrap();
         tx.accounts = accs.clone();
         tx.data = data;
 
@@ -653,7 +653,7 @@ pub mod solana_project {
     // create and then execute
     pub fn create_transaction_receiver_withdraw(
         ctx: Context<CreateTransactionReceiver>,
-        pid: Pubkey,
+        
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
@@ -666,7 +666,7 @@ pub mod solana_project {
 
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
-        tx.program_id = pid;
+        tx.program_id = Pubkey::from_str(ZEBEC_CONTRACT).unwrap();
         tx.accounts = accs.clone();
         tx.did_execute = false;
         tx.data = data;
@@ -721,7 +721,7 @@ pub mod solana_project {
     // creates transaction cancel
     pub fn create_transaction_cancel(
         ctx: Context<CreateTransaction>,
-        pid: Pubkey,
+        
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
@@ -734,7 +734,7 @@ pub mod solana_project {
 
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
-        tx.program_id = pid;
+        tx.program_id = Pubkey::from_str(ZEBEC_CONTRACT).unwrap();
         tx.accounts = accs.clone();
         tx.did_execute = false;
         tx.data = data;
@@ -795,7 +795,7 @@ pub mod solana_project {
     // create transaction
     pub fn create_transaction_sender_withdraw(
         ctx: Context<CreateTransaction>,
-        pid: Pubkey,
+        
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
 
@@ -809,7 +809,7 @@ pub mod solana_project {
 
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
-        tx.program_id = pid;
+        tx.program_id = Pubkey::from_str(ZEBEC_CONTRACT).unwrap();
         tx.accounts = accs.clone();
         tx.did_execute = false;
         tx.data = data.clone();
@@ -858,7 +858,7 @@ pub mod solana_project {
     // create transaction
     pub fn create_transaction_instant_transfer(
         ctx: Context<CreateTransaction>,
-        pid: Pubkey,
+        
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
@@ -871,7 +871,7 @@ pub mod solana_project {
 
         //Build Transactions
         let tx = &mut ctx.accounts.transaction;
-        tx.program_id = pid;
+        tx.program_id = Pubkey::from_str(ZEBEC_CONTRACT).unwrap();
         tx.accounts = accs.clone();
         tx.did_execute = false;
         tx.data = data.clone();
