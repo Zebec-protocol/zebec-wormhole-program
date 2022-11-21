@@ -266,6 +266,7 @@ pub mod solana_project {
             None => return Err(MessengerError::Overflow.into()),
             Some(val) => txn_count.count = val,
         }
+        require!(txn_count.count == current_count, MessengerError::InvalidCount);
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 

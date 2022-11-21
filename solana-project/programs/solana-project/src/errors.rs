@@ -76,4 +76,7 @@ pub enum MessengerError {
 
     #[msg("Invalid PDA Account Key")]
     InvalidPDAAccount,
+
+    #[msg("Invalid Count")]
+    InvalidCount,
 }
