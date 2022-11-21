@@ -157,7 +157,6 @@ pub struct CreateTransaction<'info> {
         ],
         bump
     )]
-    /// CHECK: pda_signer is a PDA program signer. Data is never read or written to
     pub data_storage: Account<'info, TransactionData>,
 
     #[account(
@@ -274,8 +273,6 @@ pub struct DirectTransferNative<'info> {
         bump,
     )]
     pub config: Account<'info, Config>,
-
-    //from_owner = pda_signer
 
     #[account(
         mut,
@@ -401,7 +398,6 @@ pub struct DirectTransferWrapped<'info> {
         ],
         bump
     )]
-    /// CHECK: pda_signer is a PDA program signer. Data is never read or written to
     pub data_storage: Account<'info, TransactionData>,
 
     #[account(
@@ -566,7 +562,6 @@ pub struct CreateTransactionReceiver<'info> {
         ],
         bump
     )]
-    /// CHECK: pda_signer is a PDA program signer. Data is never read or written to
     pub data_storage: Account<'info, TransactionData>,
 
     #[account(
