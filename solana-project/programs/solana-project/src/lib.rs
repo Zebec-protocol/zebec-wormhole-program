@@ -287,7 +287,7 @@ pub mod solana_project {
             14 => process_update_stream(encoded_str, vaa.emitter_chain, ctx, sender),
             16 => process_cancel_stream(encoded_str, vaa.emitter_chain, ctx, sender),
             17 => process_direct_transfer(encoded_str, vaa.emitter_chain, ctx, sender),
-            _ => return Err(MessengerError::InvalidPayload.into()),
+            _ =>  Err(MessengerError::InvalidPayload.into()),
         }
     }
 
@@ -322,7 +322,7 @@ pub mod solana_project {
 
         //check sender
         let pda_sender_passed: Pubkey = accs[1].pubkey;
-        let sender_stored = ctx.accounts.data_storage.sender.clone();
+        let sender_stored = ctx.accounts.data_storage.sender;
         require!(
             sender == sender_stored,
             MessengerError::PdaSenderMismatch
@@ -352,8 +352,8 @@ pub mod solana_project {
         ctx.accounts.transaction.did_execute = true;
         require!(
             perform_cpi(
-                chain_id.clone(),
-                sender.clone(),
+                chain_id,
+                sender,
                 *ctx.accounts.transaction.clone(),
                 ctx.accounts.pda_signer.clone(),
                 ctx.bumps,
@@ -401,7 +401,7 @@ pub mod solana_project {
 
         //check sender
         let pda_sender_passed: Pubkey = accs[5].pubkey;
-        let sender_stored = ctx.accounts.data_storage.sender.clone();
+        let sender_stored = ctx.accounts.data_storage.sender;
         require!(
             sender == sender_stored,
             MessengerError::PdaSenderMismatch
@@ -409,7 +409,7 @@ pub mod solana_project {
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[6].pubkey;
-        let receiver_stored = ctx.accounts.data_storage.receiver.clone();
+        let receiver_stored = ctx.accounts.data_storage.receiver;
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
@@ -502,7 +502,7 @@ pub mod solana_project {
 
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
-        let sender_stored = ctx.accounts.data_storage.sender.clone();
+        let sender_stored = ctx.accounts.data_storage.sender;
         require!(
             sender == sender_stored,
             MessengerError::PdaSenderMismatch
@@ -510,7 +510,7 @@ pub mod solana_project {
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[3].pubkey;
-        let receiver_stored = ctx.accounts.data_storage.receiver.clone();
+        let receiver_stored = ctx.accounts.data_storage.receiver;
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
@@ -552,8 +552,8 @@ pub mod solana_project {
         ctx.accounts.transaction.did_execute = true;
         require!(
             perform_cpi(
-                chain_id.clone(),
-                sender.clone(),
+                chain_id,
+                sender,
                 *ctx.accounts.transaction.clone(),
                 ctx.accounts.pda_signer.clone(),
                 ctx.bumps,
@@ -600,7 +600,7 @@ pub mod solana_project {
 
         //check sender
         let pda_sender_passed: Pubkey = accs[0].pubkey;
-        let sender_stored = ctx.accounts.data_storage.sender.clone();
+        let sender_stored = ctx.accounts.data_storage.sender;
         require!(
             sender == sender_stored,
             MessengerError::PdaSenderMismatch
@@ -608,7 +608,7 @@ pub mod solana_project {
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
-        let receiver_stored = ctx.accounts.data_storage.receiver.clone();
+        let receiver_stored = ctx.accounts.data_storage.receiver;
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
@@ -633,8 +633,8 @@ pub mod solana_project {
         ctx.accounts.transaction.did_execute = true;
         require!(
             perform_cpi(
-                chain_id.clone(),
-                sender.clone(),
+                chain_id,
+                sender,
                 *ctx.accounts.transaction.clone(),
                 ctx.accounts.pda_signer.clone(),
                 ctx.bumps,
@@ -688,11 +688,11 @@ pub mod solana_project {
 
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
-        let sender_stored = ctx.accounts.data_storage.sender.clone();
+        let sender_stored = ctx.accounts.data_storage.sender;
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
-        let receiver_stored = ctx.accounts.data_storage.receiver.clone();
+        let receiver_stored = ctx.accounts.data_storage.receiver;
         require!(
             sender == receiver_stored,
             MessengerError::PdaReceiverMismatch
@@ -756,7 +756,7 @@ pub mod solana_project {
 
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
-        let sender_stored = ctx.accounts.data_storage.sender.clone();
+        let sender_stored = ctx.accounts.data_storage.sender;
         require!(
             sender == sender_stored,
             MessengerError::PdaSenderMismatch
@@ -764,7 +764,7 @@ pub mod solana_project {
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
-        let receiver_stored = ctx.accounts.data_storage.receiver.clone();
+        let receiver_stored = ctx.accounts.data_storage.receiver;
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
@@ -824,7 +824,7 @@ pub mod solana_project {
 
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
-        let sender_stored = ctx.accounts.data_storage.sender.clone();
+        let sender_stored = ctx.accounts.data_storage.sender;
         require!(
             sender == sender_stored,
             MessengerError::PdaSenderMismatch
@@ -886,7 +886,7 @@ pub mod solana_project {
 
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
-        let sender_stored = ctx.accounts.data_storage.sender.clone();
+        let sender_stored = ctx.accounts.data_storage.sender;
         require!(
             sender == sender_stored,
             MessengerError::PdaSenderMismatch
@@ -894,7 +894,7 @@ pub mod solana_project {
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
-        let receiver_stored = ctx.accounts.data_storage.receiver.clone();
+        let receiver_stored = ctx.accounts.data_storage.receiver;
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
@@ -954,14 +954,14 @@ pub mod solana_project {
         );
 
         //check sender
-        let sender_stored = ctx.accounts.data_storage.sender.clone();
+        let sender_stored = ctx.accounts.data_storage.sender;
         require!(
             sender == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
         //check receiver
-        let receiver_stored = ctx.accounts.data_storage.receiver.clone();
+        let receiver_stored = ctx.accounts.data_storage.receiver;
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
@@ -1003,21 +1003,14 @@ pub mod solana_project {
         transaction_status.executed = true;
 
         //check sender
-        let sender_stored = ctx.accounts.data_storage.sender.clone();
-        require!(
-            sender == sender_stored,
-            MessengerError::PdaSenderMismatch
-        );
-
-        //check sender
-        let sender_stored = ctx.accounts.data_storage.sender.clone();
+        let sender_stored = ctx.accounts.data_storage.sender;
         require!(
             sender == sender_stored,
             MessengerError::PdaSenderMismatch
         );
 
         //check receiver
-        let receiver_stored = ctx.accounts.data_storage.receiver.clone();
+        let receiver_stored = ctx.accounts.data_storage.receiver;
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
@@ -1072,8 +1065,8 @@ pub mod solana_project {
         ctx.accounts.transaction.did_execute = true;
         require!(
             perform_cpi(
-                from_chain_id.clone(),
-                eth_add.clone(),
+                from_chain_id,
+                eth_add,
                 *ctx.accounts.transaction.clone(),
                 ctx.accounts.pda_signer.clone(),
                 ctx.bumps,
