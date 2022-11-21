@@ -1091,214 +1091,215 @@ pub mod solana_project {
         Ok(())
     }
 
-    pub fn transfer_wrapped(
-        ctx: Context<DirectTransferWrapped>,
-        sender: [u8; 32],
-        sender_chain: u16,
-        target_chain: u16,
-        fee: u64,
-        receiver: [u8; 32],
-    ) -> Result<()> {
-        let amount = ctx.accounts.data_storage.amount;
+}
 
-        //Check EOA
-        require!(
-            ctx.accounts.config.owner == ctx.accounts.zebec_eoa.key(),
-            MessengerError::InvalidCaller
-        );
-        let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
+fn transfer_wrapped(
+    ctx: Context<DirectTransferWrapped>,
+    sender: [u8; 32],
+    sender_chain: u16,
+    target_chain: u16,
+    fee: u64,
+    receiver: [u8; 32],
+) -> Result<()> {
+    let amount = ctx.accounts.data_storage.amount;
 
-        let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain.to_be_bytes(), &bump]];
+    //Check EOA
+    require!(
+        ctx.accounts.config.owner == ctx.accounts.zebec_eoa.key(),
+        MessengerError::InvalidCaller
+    );
+    let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
 
-        let approve_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            Approve {
-                to: ctx.accounts.from.to_account_info(),
-                delegate: ctx.accounts.portal_authority_signer.to_account_info(),
-                authority: ctx.accounts.pda_signer.to_account_info(),
-            },
-            signer_seeds,
-        );
+    let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain.to_be_bytes(), &bump]];
 
-        // Delgate transfer authority to Token Bridge for the tokens
-        approve(approve_ctx, amount)?;
+    let approve_ctx = CpiContext::new_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        Approve {
+            to: ctx.accounts.from.to_account_info(),
+            delegate: ctx.accounts.portal_authority_signer.to_account_info(),
+            authority: ctx.accounts.pda_signer.to_account_info(),
+        },
+        signer_seeds,
+    );
 
-        let target_address: [u8; 32] = receiver.as_slice().try_into().unwrap();
-        // Instruction
-        let transfer_ix = Instruction {
-            program_id: Pubkey::from_str(TOKEN_BRIDGE_ADDRESS).unwrap(),
-            accounts: vec![
-                AccountMeta::new(ctx.accounts.zebec_eoa.key(), true),
-                AccountMeta::new_readonly(ctx.accounts.portal_config.key(), false),
-                AccountMeta::new(ctx.accounts.from.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.pda_signer.key(), true),
-                AccountMeta::new(ctx.accounts.wrapped_mint.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.wrapped_meta.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.portal_authority_signer.key(), false),
-                AccountMeta::new(ctx.accounts.bridge_config.key(), false),
-                AccountMeta::new(ctx.accounts.portal_message.key(), true),
-                AccountMeta::new_readonly(ctx.accounts.portal_emitter.key(), false),
-                AccountMeta::new(ctx.accounts.portal_sequence.key(), false),
-                AccountMeta::new(ctx.accounts.bridge_fee_collector.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.clock.key(), false),
-                // Dependencies
-                AccountMeta::new_readonly(ctx.accounts.rent.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
-                // Program
-                AccountMeta::new_readonly(ctx.accounts.core_bridge_program.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.token_program.key(), false),
-            ],
-            data: (
-                crate::portal::Instruction::TransferWrapped,
-                TransferWrappedData {
-                    nonce: ctx.accounts.config.nonce,
-                    amount,
-                    fee,
-                    target_address,
-                    target_chain,
-                },
-            )
-                .try_to_vec()?,
-        };
+    // Delgate transfer authority to Token Bridge for the tokens
+    approve(approve_ctx, amount)?;
 
-        // Accounts
-        let transfer_accs = vec![
-            ctx.accounts.zebec_eoa.to_account_info(),
-            ctx.accounts.portal_config.to_account_info(),
-            ctx.accounts.from.to_account_info(),
-            ctx.accounts.pda_signer.to_account_info(),
-            ctx.accounts.wrapped_mint.to_account_info(),
-            ctx.accounts.wrapped_meta.to_account_info(),
-            ctx.accounts.portal_authority_signer.to_account_info(),
-            ctx.accounts.bridge_config.to_account_info(),
-            ctx.accounts.portal_message.to_account_info(),
-            ctx.accounts.portal_emitter.to_account_info(),
-            ctx.accounts.portal_sequence.to_account_info(),
-            ctx.accounts.bridge_fee_collector.to_account_info(),
-            ctx.accounts.clock.to_account_info(),
+    let target_address: [u8; 32] = receiver.as_slice().try_into().unwrap();
+    // Instruction
+    let transfer_ix = Instruction {
+        program_id: Pubkey::from_str(TOKEN_BRIDGE_ADDRESS).unwrap(),
+        accounts: vec![
+            AccountMeta::new(ctx.accounts.zebec_eoa.key(), true),
+            AccountMeta::new_readonly(ctx.accounts.portal_config.key(), false),
+            AccountMeta::new(ctx.accounts.from.key(), false),
+            AccountMeta::new_readonly(ctx.accounts.pda_signer.key(), true),
+            AccountMeta::new(ctx.accounts.wrapped_mint.key(), false),
+            AccountMeta::new_readonly(ctx.accounts.wrapped_meta.key(), false),
+            AccountMeta::new_readonly(ctx.accounts.portal_authority_signer.key(), false),
+            AccountMeta::new(ctx.accounts.bridge_config.key(), false),
+            AccountMeta::new(ctx.accounts.portal_message.key(), true),
+            AccountMeta::new_readonly(ctx.accounts.portal_emitter.key(), false),
+            AccountMeta::new(ctx.accounts.portal_sequence.key(), false),
+            AccountMeta::new(ctx.accounts.bridge_fee_collector.key(), false),
+            AccountMeta::new_readonly(ctx.accounts.clock.key(), false),
             // Dependencies
-            ctx.accounts.rent.to_account_info(),
-            ctx.accounts.system_program.to_account_info(),
+            AccountMeta::new_readonly(ctx.accounts.rent.key(), false),
+            AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
             // Program
-            ctx.accounts.core_bridge_program.to_account_info(),
-            ctx.accounts.token_program.to_account_info(),
-        ];
+            AccountMeta::new_readonly(ctx.accounts.core_bridge_program.key(), false),
+            AccountMeta::new_readonly(ctx.accounts.token_program.key(), false),
+        ],
+        data: (
+            crate::portal::Instruction::TransferWrapped,
+            TransferWrappedData {
+                nonce: ctx.accounts.config.nonce,
+                amount,
+                fee,
+                target_address,
+                target_chain,
+            },
+        )
+            .try_to_vec()?,
+    };
 
-        invoke_signed(&transfer_ix, &transfer_accs, signer_seeds)?;
+    // Accounts
+    let transfer_accs = vec![
+        ctx.accounts.zebec_eoa.to_account_info(),
+        ctx.accounts.portal_config.to_account_info(),
+        ctx.accounts.from.to_account_info(),
+        ctx.accounts.pda_signer.to_account_info(),
+        ctx.accounts.wrapped_mint.to_account_info(),
+        ctx.accounts.wrapped_meta.to_account_info(),
+        ctx.accounts.portal_authority_signer.to_account_info(),
+        ctx.accounts.bridge_config.to_account_info(),
+        ctx.accounts.portal_message.to_account_info(),
+        ctx.accounts.portal_emitter.to_account_info(),
+        ctx.accounts.portal_sequence.to_account_info(),
+        ctx.accounts.bridge_fee_collector.to_account_info(),
+        ctx.accounts.clock.to_account_info(),
+        // Dependencies
+        ctx.accounts.rent.to_account_info(),
+        ctx.accounts.system_program.to_account_info(),
+        // Program
+        ctx.accounts.core_bridge_program.to_account_info(),
+        ctx.accounts.token_program.to_account_info(),
+    ];
 
-        let sum = ctx.accounts.config.nonce.checked_add(1);
-        match sum {
-            None => return Err(MessengerError::Overflow.into()),
-            Some(val) => ctx.accounts.config.nonce = val,
-        }
+    invoke_signed(&transfer_ix, &transfer_accs, signer_seeds)?;
 
-        Ok(())
+    let sum = ctx.accounts.config.nonce.checked_add(1);
+    match sum {
+        None => return Err(MessengerError::Overflow.into()),
+        Some(val) => ctx.accounts.config.nonce = val,
     }
 
-    //transfer
-    pub fn transfer_native(
-        ctx: Context<DirectTransferNative>,
-        sender: [u8; 32],
-        sender_chain: u16,
-        target_chain: u16,
-        fee: u64,
-        receiver: [u8;32],
-    ) -> Result<()> {
-        let amount = ctx.accounts.data_storage.amount;
-        //Check EOA
-        require!(
-            ctx.accounts.config.owner == ctx.accounts.zebec_eoa.key(),
-            MessengerError::InvalidCaller
-        );
+    Ok(())
+}
 
-        let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
+//transfer
+fn transfer_native(
+    ctx: Context<DirectTransferNative>,
+    sender: [u8; 32],
+    sender_chain: u16,
+    target_chain: u16,
+    fee: u64,
+    receiver: [u8;32],
+) -> Result<()> {
+    let amount = ctx.accounts.data_storage.amount;
+    //Check EOA
+    require!(
+        ctx.accounts.config.owner == ctx.accounts.zebec_eoa.key(),
+        MessengerError::InvalidCaller
+    );
 
-        let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain.to_be_bytes(), &bump]];
+    let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
 
-        let approve_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info(),
-            Approve {
-                to: ctx.accounts.from.to_account_info(),
-                delegate: ctx.accounts.portal_authority_signer.to_account_info(),
-                authority: ctx.accounts.pda_signer.to_account_info(),
-            },
-            signer_seeds,
-        );
+    let signer_seeds: &[&[&[u8]]] = &[&[&sender, &sender_chain.to_be_bytes(), &bump]];
 
-        // Delgate transfer authority to Token Bridge for the tokens
-        approve(approve_ctx, amount)?;
+    let approve_ctx = CpiContext::new_with_signer(
+        ctx.accounts.token_program.to_account_info(),
+        Approve {
+            to: ctx.accounts.from.to_account_info(),
+            delegate: ctx.accounts.portal_authority_signer.to_account_info(),
+            authority: ctx.accounts.pda_signer.to_account_info(),
+        },
+        signer_seeds,
+    );
 
-        let target_address: [u8; 32] = receiver.as_slice().try_into().unwrap();
-        // Instruction
-        let transfer_ix = Instruction {
-            program_id: Pubkey::from_str(TOKEN_BRIDGE_ADDRESS).unwrap(),
-            accounts: vec![
-                AccountMeta::new(ctx.accounts.zebec_eoa.key(), true),
-                AccountMeta::new_readonly(ctx.accounts.portal_config.key(), false),
-                AccountMeta::new(ctx.accounts.from.key(), false),
-                AccountMeta::new(ctx.accounts.mint.key(), false),
-                AccountMeta::new(ctx.accounts.portal_custody.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.portal_authority_signer.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.portal_custody_signer.key(), false),
-                AccountMeta::new(ctx.accounts.bridge_config.key(), false),
-                AccountMeta::new(ctx.accounts.portal_message.key(), true),
-                AccountMeta::new_readonly(ctx.accounts.portal_emitter.key(), false),
-                AccountMeta::new(ctx.accounts.portal_sequence.key(), false),
-                AccountMeta::new(ctx.accounts.bridge_fee_collector.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.clock.key(), false),
-                // Dependencies
-                AccountMeta::new_readonly(ctx.accounts.rent.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
-                // Program
-                AccountMeta::new_readonly(ctx.accounts.core_bridge_program.key(), false),
-                AccountMeta::new_readonly(ctx.accounts.token_program.key(), false),
-            ],
-            data: (
-                crate::portal::Instruction::TransferNative,
-                TransferNativeData {
-                    nonce: ctx.accounts.config.nonce,
-                    amount,
-                    fee,
-                    target_address,
-                    target_chain,
-                },
-            )
-                .try_to_vec()?,
-        };
+    // Delgate transfer authority to Token Bridge for the tokens
+    approve(approve_ctx, amount)?;
 
-        // Accounts
-        let transfer_accs = vec![
-            ctx.accounts.zebec_eoa.to_account_info(),
-            ctx.accounts.portal_config.to_account_info(),
-            ctx.accounts.from.to_account_info(),
-            ctx.accounts.mint.to_account_info(),
-            ctx.accounts.portal_custody.to_account_info(),
-            ctx.accounts.portal_authority_signer.to_account_info(),
-            ctx.accounts.portal_custody_signer.to_account_info(),
-            ctx.accounts.bridge_config.to_account_info(),
-            ctx.accounts.portal_message.to_account_info(),
-            ctx.accounts.portal_emitter.to_account_info(),
-            ctx.accounts.portal_sequence.to_account_info(),
-            ctx.accounts.bridge_fee_collector.to_account_info(),
-            ctx.accounts.clock.to_account_info(),
+    let target_address: [u8; 32] = receiver.as_slice().try_into().unwrap();
+    // Instruction
+    let transfer_ix = Instruction {
+        program_id: Pubkey::from_str(TOKEN_BRIDGE_ADDRESS).unwrap(),
+        accounts: vec![
+            AccountMeta::new(ctx.accounts.zebec_eoa.key(), true),
+            AccountMeta::new_readonly(ctx.accounts.portal_config.key(), false),
+            AccountMeta::new(ctx.accounts.from.key(), false),
+            AccountMeta::new(ctx.accounts.mint.key(), false),
+            AccountMeta::new(ctx.accounts.portal_custody.key(), false),
+            AccountMeta::new_readonly(ctx.accounts.portal_authority_signer.key(), false),
+            AccountMeta::new_readonly(ctx.accounts.portal_custody_signer.key(), false),
+            AccountMeta::new(ctx.accounts.bridge_config.key(), false),
+            AccountMeta::new(ctx.accounts.portal_message.key(), true),
+            AccountMeta::new_readonly(ctx.accounts.portal_emitter.key(), false),
+            AccountMeta::new(ctx.accounts.portal_sequence.key(), false),
+            AccountMeta::new(ctx.accounts.bridge_fee_collector.key(), false),
+            AccountMeta::new_readonly(ctx.accounts.clock.key(), false),
             // Dependencies
-            ctx.accounts.rent.to_account_info(),
-            ctx.accounts.system_program.to_account_info(),
+            AccountMeta::new_readonly(ctx.accounts.rent.key(), false),
+            AccountMeta::new_readonly(ctx.accounts.system_program.key(), false),
             // Program
-            ctx.accounts.core_bridge_program.to_account_info(),
-            ctx.accounts.token_program.to_account_info(),
-        ];
+            AccountMeta::new_readonly(ctx.accounts.core_bridge_program.key(), false),
+            AccountMeta::new_readonly(ctx.accounts.token_program.key(), false),
+        ],
+        data: (
+            crate::portal::Instruction::TransferNative,
+            TransferNativeData {
+                nonce: ctx.accounts.config.nonce,
+                amount,
+                fee,
+                target_address,
+                target_chain,
+            },
+        )
+            .try_to_vec()?,
+    };
 
-        invoke_signed(&transfer_ix, &transfer_accs, signer_seeds)?;
+    // Accounts
+    let transfer_accs = vec![
+        ctx.accounts.zebec_eoa.to_account_info(),
+        ctx.accounts.portal_config.to_account_info(),
+        ctx.accounts.from.to_account_info(),
+        ctx.accounts.mint.to_account_info(),
+        ctx.accounts.portal_custody.to_account_info(),
+        ctx.accounts.portal_authority_signer.to_account_info(),
+        ctx.accounts.portal_custody_signer.to_account_info(),
+        ctx.accounts.bridge_config.to_account_info(),
+        ctx.accounts.portal_message.to_account_info(),
+        ctx.accounts.portal_emitter.to_account_info(),
+        ctx.accounts.portal_sequence.to_account_info(),
+        ctx.accounts.bridge_fee_collector.to_account_info(),
+        ctx.accounts.clock.to_account_info(),
+        // Dependencies
+        ctx.accounts.rent.to_account_info(),
+        ctx.accounts.system_program.to_account_info(),
+        // Program
+        ctx.accounts.core_bridge_program.to_account_info(),
+        ctx.accounts.token_program.to_account_info(),
+    ];
 
-        let sum = ctx.accounts.config.nonce.checked_add(1);
-        match sum {
-            None => return Err(MessengerError::Overflow.into()),
-            Some(val) => ctx.accounts.config.nonce = val,
-        }
+    invoke_signed(&transfer_ix, &transfer_accs, signer_seeds)?;
 
-        Ok(())
+    let sum = ctx.accounts.config.nonce.checked_add(1);
+    match sum {
+        None => return Err(MessengerError::Overflow.into()),
+        Some(val) => ctx.accounts.config.nonce = val,
     }
+
+    Ok(())
 }
 
 fn get_u64(data_bytes: Vec<u8>) -> u64 {
