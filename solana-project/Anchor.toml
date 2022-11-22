@@ -4,6 +4,9 @@ seeds = false
 [programs.mainnet]
 solana_project = "2w1QMXDTsWCmpdPHfjrL9SbkKeh3K37WMqJQUfnXHzRh"
 
+[programs.devnet]
+solana_project = "3BCSzisB1NZRcpB558MEvpJeJ4GtraQfdWqTshdtPVN8"
+
 [registry]
 url = "https://anchor.projectserum.com"
 

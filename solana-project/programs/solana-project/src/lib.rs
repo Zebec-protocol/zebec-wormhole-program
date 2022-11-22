@@ -133,23 +133,16 @@ pub mod solana_project {
 
         let rent_lamport = Rent::default().minimum_balance(1);
 
-        if **ctx
-            .accounts
-            .pda_account
-            .to_account_info()
-            .try_borrow_lamports()?
-            == 0u64
-        {
-            let cpi_transfer_sol = TransferSol {
-                from: ctx.accounts.zebec_eoa.to_account_info(),
-                to: ctx.accounts.pda_account.to_account_info(),
-            };
-            let cpi_transfer_sol_ctx = CpiContext::new(
-                ctx.accounts.system_program.to_account_info(),
-                cpi_transfer_sol,
-            );
-            transfer_sol(cpi_transfer_sol_ctx, rent_lamport + 5000000)?;
-        }
+        let cpi_transfer_sol = TransferSol {
+            from: ctx.accounts.zebec_eoa.to_account_info(),
+            to: ctx.accounts.pda_account.to_account_info(),
+        };
+        let cpi_transfer_sol_ctx = CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            cpi_transfer_sol,
+        );
+        transfer_sol(cpi_transfer_sol_ctx, rent_lamport + 5000000)?;
+        
         emit!(InitializedPDA { pda: account_pda });
 
         Ok(())
