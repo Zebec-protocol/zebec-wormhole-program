@@ -13,7 +13,7 @@ use hex::decode;
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(
-        init_if_needed,
+        init,
         seeds=[b"config".as_ref()],
         payer=owner,
         bump,
@@ -36,7 +36,7 @@ pub struct RegisterChain<'info> {
     )]
     pub config: Account<'info, Config>,
     #[account(
-        init_if_needed,
+        init,
         seeds=[b"EmitterAddress".as_ref(), chain_id.to_be_bytes().as_ref()],
         payer=owner,
         bump,
