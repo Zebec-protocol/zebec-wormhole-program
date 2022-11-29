@@ -2,6 +2,9 @@ use anchor_lang::prelude::*;
 
 #[error_code]
 pub enum MessengerError {
+    #[msg("Invalid To Chain Id")]
+    InvalidToChainId,
+
     #[msg("Posted VAA Key Mismatch")]
     VAAKeyMismatch,
 
@@ -69,5 +72,11 @@ pub enum MessengerError {
     TransactionAlreadyCreated,
 
     #[msg("Transaction Already Executed")]
-    TransactionAlreadyExecuted
+    TransactionAlreadyExecuted,
+
+    #[msg("Invalid PDA Account Key")]
+    InvalidPDAAccount,
+
+    #[msg("Invalid Count")]
+    InvalidCount,
 }

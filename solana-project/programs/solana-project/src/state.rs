@@ -18,7 +18,9 @@ pub struct EmitterAddrAccount {
 
 //Empty account, we just need to check that it *exists*
 #[account]
-pub struct ProcessedVAA {}
+pub struct ProcessedVAA {
+    pub transaction_count: u64,
+}
 
 #[account]
 pub struct Transaction {
@@ -36,10 +38,10 @@ pub struct Transaction {
 #[account]
 // TODO: can_update and cancel are bools
 pub struct TransactionData {
-    pub sender: Vec<u8>,
-    pub receiver: Vec<u8>,
+    pub sender: [u8;32],
+    pub receiver: [u8;32],
     pub data_account: Pubkey,
-    pub from_chain_id: u64,
+    pub from_chain_id: u16,
     pub token_mint: Pubkey,
     pub amount: u64,
     pub start_time: u64,
@@ -56,14 +58,14 @@ pub struct TransactionAccount {
 }
 
 #[account]
-pub struct TransactionStatus{
-    pub executed: bool
-} 
+pub struct TransactionStatus {
+    pub executed: bool,
+}
 
 #[account]
 #[derive(Default)]
 pub struct Count {
-    pub count: u8,
+    pub count: u64,
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]

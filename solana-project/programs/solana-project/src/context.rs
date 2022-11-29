@@ -1,6 +1,8 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token::Token;
-use anchor_spl::token::TokenAccount;
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::{Mint, TokenAccount, Token}
+};
 use crate::constants::*;
 use crate::portal::TokenPortalBridge;
 use crate::state::*;
@@ -11,7 +13,7 @@ use hex::decode;
 #[derive(Accounts)]
 pub struct Initialize<'info> {
     #[account(
-        init_if_needed,
+        init,
         seeds=[b"config".as_ref()],
         payer=owner,
         bump,
@@ -34,7 +36,7 @@ pub struct RegisterChain<'info> {
     )]
     pub config: Account<'info, Config>,
     #[account(
-        init_if_needed,
+        init,
         seeds=[b"EmitterAddress".as_ref(), chain_id.to_be_bytes().as_ref()],
         payer=owner,
         bump,
@@ -44,16 +46,103 @@ pub struct RegisterChain<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(_sender:[u8;32], _chain_id:u16)]
+pub struct InitializePDA<'info> {
+    #[account(mut)]
+    pub zebec_eoa: Signer<'info>,
+    pub system_program: Program<'info, System>,
+    
+    #[account(
+        init,
+        payer=zebec_eoa,
+        space=8 + 8,
+        seeds=[
+            &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            emitter_acc.chain_id.to_be_bytes().as_ref(),
+            (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
+        ],
+        bump,
+        
+    )]
+    pub processed_vaa: Account<'info, ProcessedVAA>,
+    pub emitter_acc: Account<'info, EmitterAddrAccount>,
+    /// This requires some fancy hashing, so confirm it's derived address in the function itself.
+    #[account(
+        constraint = core_bridge_vaa.to_account_info().owner == &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
+    )]
+    /// CHECK: This account is owned by Core Bridge so we trust it
+    pub core_bridge_vaa: AccountInfo<'info>,
+
+    #[account(
+        mut,
+        seeds = [
+            &_sender,
+            &_chain_id.to_be_bytes()
+        ],
+        bump
+    )]
+    /// CHECK:: pda_account are checked inside
+    pub pda_account: UncheckedAccount<'info>,
+}
+
+#[derive(Accounts)]
+#[instruction(_sender:[u8;32], _chain_id:u16)]
+pub struct InitializePDATokenAccount<'info> {
+    #[account(mut)]
+    pub zebec_eoa: Signer<'info>,
+    pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
+    pub token_program: Program<'info, Token>,   
+    pub associated_token_program: Program<'info, AssociatedToken>,
+
+    #[account(
+        init,
+        payer=zebec_eoa,
+        space= 8 + 8,
+        seeds=[
+            &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            emitter_acc.chain_id.to_be_bytes().as_ref(),
+            (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
+        ],
+        bump,
+    )]
+    pub processed_vaa: Account<'info, ProcessedVAA>,
+    pub emitter_acc: Account<'info, EmitterAddrAccount>,
+    /// This requires some fancy hashing, so confirm it's derived address in the function itself.
+    #[account(
+        constraint = core_bridge_vaa.to_account_info().owner == &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
+    )]
+    /// CHECK: This account is owned by Core Bridge so we trust it
+    pub core_bridge_vaa: AccountInfo<'info>,
+
+    ///CHECK:: pda_account are checked inside
+    #[account(
+        mut,
+        seeds=[&_sender, &_chain_id.to_be_bytes()], 
+        bump
+    )]
+    pub pda_account: UncheckedAccount<'info>,
+
+    #[account(
+        init_if_needed,
+        payer = zebec_eoa,
+        associated_token::mint = token_mint,
+        associated_token::authority = pda_account,
+    )]
+    pub pda_token_account: Box <Account<'info, TokenAccount>>,
+    pub token_mint: Account<'info, Mint>
+}
+
+#[derive(Accounts)]
 #[instruction( 
-    pid: Pubkey,
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     sender: [u8; 32],
+    current_count: u64
 )]
 pub struct CreateTransaction<'info> {
     #[account(zero, signer)]
     pub transaction: Box<Account<'info, Transaction>>,
-    // One of the owners. Checked in the handler.
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -63,31 +152,18 @@ pub struct CreateTransaction<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[txn_count.count]
+            &current_count.to_be_bytes()
         ],
         bump
     )]
-    /// CHECK: pda_signer is a PDA program signer. Data is never read or written to
     pub data_storage: Account<'info, TransactionData>,
-
-    #[account(
-        mut,
-        constraint = data_storage.sender == sender,
-        seeds = [
-            b"txn_count".as_ref(),
-            &sender,
-        ],
-        bump
-    )]
-    pub txn_count: Account<'info, Count>,
-
 
     #[account(
         mut, 
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[txn_count.count]
+            &current_count.to_be_bytes()
         ],
         bump
     )]
@@ -96,16 +172,16 @@ pub struct CreateTransaction<'info> {
 
 #[derive(Accounts)]
 #[instruction( 
-    pid: Pubkey,
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
-    chain_id: Vec<u8>,
+    chain_id: u16,
     sender: [u8; 32],
+    current_count: u64
 )]
 pub struct CETransaction<'info> {
     #[account(zero, signer)]
     pub transaction: Box<Account<'info, Transaction>>,
-    // One of the owners. Checked in the handler.
+    
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -115,28 +191,18 @@ pub struct CETransaction<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[txn_count.count]
+            &current_count.to_be_bytes()
         ],
         bump
     )]
     pub data_storage: Account<'info, TransactionData>,
 
-    #[account(
-        mut,
-        constraint = data_storage.sender == sender,
-        seeds = [
-            b"txn_count".as_ref(),
-            &sender,
-        ],
-        bump
-    )]
-    pub txn_count: Account<'info, Count>,
     ///CHECK: pda seeds checked
     #[account(
         mut,
         seeds = [
             &sender,
-            &chain_id
+            &chain_id.to_be_bytes()
         ],
         bump
     )]
@@ -147,7 +213,7 @@ pub struct CETransaction<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[txn_count.count]
+            &current_count.to_be_bytes()
         ],
         bump
     )]
@@ -157,41 +223,31 @@ pub struct CETransaction<'info> {
 #[derive(Accounts)]
 #[instruction( 
     sender: [u8; 32],
-    chain_id: Vec<u8>,
+    chain_id: u16,
+    current_count: u64,
 )]
 pub struct DirectTransferNative<'info> {
-    // One of the owners. Checked in the handler.
+    
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
-
+    
    #[account(
         mut,
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[txn_count.count]
+            &current_count.to_be_bytes()
         ],
         bump
     )]
     pub data_storage: Box<Account<'info, TransactionData>>,
 
     #[account(
-        mut,
-        constraint = data_storage.sender == sender,
-        seeds = [
-            b"txn_count".as_ref(),
-            &sender,
-        ],
-        bump
-    )]
-    pub txn_count: Box<Account<'info, Count>>,
-
-    #[account(
         mut, 
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[txn_count.count]
+            &current_count.to_be_bytes()
         ],
         bump
     )]
@@ -202,7 +258,7 @@ pub struct DirectTransferNative<'info> {
         mut,
         seeds = [
             &sender,
-            &chain_id
+            &chain_id.to_be_bytes()
         ],
         bump
     )]
@@ -215,8 +271,6 @@ pub struct DirectTransferNative<'info> {
         bump,
     )]
     pub config: Account<'info, Config>,
-
-    //from_owner = pda_signer
 
     #[account(
         mut,
@@ -323,12 +377,13 @@ pub struct DirectTransferNative<'info> {
 #[derive(Accounts)]
 #[instruction( 
     sender: [u8; 32],
-    sender_chain: Vec<u8>,
+    sender_chain: u16,
     _token_address: Vec<u8>,
     _token_chain: u16,
+    current_count: u64,
 )]
 pub struct DirectTransferWrapped<'info> {
-    // One of the owners. Checked in the handler.
+    
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
 
@@ -337,31 +392,18 @@ pub struct DirectTransferWrapped<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[txn_count.count]
+            &current_count.to_be_bytes()
         ],
         bump
     )]
-    /// CHECK: pda_signer is a PDA program signer. Data is never read or written to
     pub data_storage: Account<'info, TransactionData>,
-
-    #[account(
-        mut,
-        constraint = data_storage.sender == sender,
-        seeds = [
-            b"txn_count".as_ref(),
-            &sender,
-        ],
-        bump
-    )]
-    pub txn_count: Account<'info, Count>,
-
 
     #[account(
         mut, 
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[txn_count.count]
+            &current_count.to_be_bytes()
         ],
         bump
     )]
@@ -372,7 +414,7 @@ pub struct DirectTransferWrapped<'info> {
         mut,
         seeds = [
             &sender,
-            &sender_chain
+            &sender_chain.to_be_bytes()
         ],
         bump
     )]
@@ -495,15 +537,15 @@ pub struct DirectTransferWrapped<'info> {
 
 #[derive(Accounts)]
 #[instruction( 
-    pid: Pubkey,
     accs: Vec<TransactionAccount>,
     data: Vec<u8>,
     sender: [u8; 32],
+    _current_count: u64
 )]
 pub struct CreateTransactionReceiver<'info> {
     #[account(zero, signer)]
     pub transaction: Box<Account<'info, Transaction>>,
-    // One of the owners. Checked in the handler.
+    
     #[account(mut)]
     pub zebec_eoa: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -513,30 +555,18 @@ pub struct CreateTransactionReceiver<'info> {
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[txn_count.count]
+            &_current_count.to_be_bytes()
         ],
         bump
     )]
-    /// CHECK: pda_signer is a PDA program signer. Data is never read or written to
     pub data_storage: Account<'info, TransactionData>,
-
-    #[account(
-        mut,
-        constraint = data_storage.receiver == sender,
-        seeds = [
-            b"txn_count".as_ref(),
-            &sender,
-        ],
-        bump
-    )]
-    pub txn_count: Account<'info, Count>,
 
     #[account(
         mut, 
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[txn_count.count]
+            &_current_count.to_be_bytes()
         ],
         bump
     )]
@@ -545,26 +575,26 @@ pub struct CreateTransactionReceiver<'info> {
 
 #[derive(Accounts)]
 #[instruction(
-    current_count: u8, 
+    current_count: u64, 
     sender: [u8; 32], 
 )]
 pub struct StoreMsg<'info>{
 
-    // ZEBEC's EOA.
+    // // ZEBEC's EOA.
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
 
     #[account(
         init,
+        payer=payer,
+        space= 8 + 8,
         seeds=[
             &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
             emitter_acc.chain_id.to_be_bytes().as_ref(),
             (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
         ],
-        payer=payer,
         bump,
-        space=8
     )]
     pub processed_vaa: Account<'info, ProcessedVAA>,
     pub emitter_acc: Account<'info, EmitterAddrAccount>,
@@ -577,12 +607,12 @@ pub struct StoreMsg<'info>{
 
     #[account(
         init,
-        space = 8 + 174,
+        space = 8 + 156,
         payer = payer,
         seeds = [
             b"data_store".as_ref(),
             &sender, 
-            &[current_count]
+            &current_count.to_be_bytes()
         ],
         bump,
     )]
@@ -591,7 +621,7 @@ pub struct StoreMsg<'info>{
     #[account(
         init_if_needed,
         payer = payer, 
-        space = 8 + 4,
+        space = 8 + 8,
         seeds = [
             b"txn_count".as_ref(),
             &sender,
@@ -603,11 +633,11 @@ pub struct StoreMsg<'info>{
     #[account(
         init, 
         payer = payer,
-        space = 8 + 1 + 1,
+        space = 8 + 1,
         seeds = [
             b"txn_status".as_ref(),
             &sender,
-            &[current_count]
+            &current_count.to_be_bytes()
         ],
         bump
     )]
@@ -617,8 +647,8 @@ pub struct StoreMsg<'info>{
 #[derive(Accounts)]
 #[instruction(  
     eth_add:[u8; 32],
-    from_chain_id: Vec<u8>,
-    current_count: u8
+    from_chain_id: u16,
+    _current_count: u64
 )]
 pub struct ExecuteTransaction<'info> {
     pub system_program: Program<'info, System>,
@@ -628,7 +658,7 @@ pub struct ExecuteTransaction<'info> {
         mut,
         seeds = [
             &eth_add,
-            &from_chain_id
+            &from_chain_id.to_be_bytes()
         ],
         bump
     )]
@@ -641,7 +671,7 @@ pub struct ExecuteTransaction<'info> {
         seeds = [
             b"txn_status".as_ref(),
             &eth_add,
-            &[current_count]
+            &_current_count.to_be_bytes()
         ],
         bump
     )]
