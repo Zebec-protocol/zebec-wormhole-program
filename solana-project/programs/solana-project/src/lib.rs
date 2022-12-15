@@ -5,7 +5,6 @@ use anchor_lang::solana_program::instruction::Instruction;
 
 use anchor_lang::solana_program;
 
-
 use anchor_spl::token::{approve, Approve};
 
 use primitive_types::U256;
@@ -37,7 +36,7 @@ use std::ops::Deref;
 
 use anchor_lang::solana_program::program::invoke_signed;
 
-declare_id!("2w1QMXDTsWCmpdPHfjrL9SbkKeh3K37WMqJQUfnXHzRh");
+declare_id!("3qAAmNxTHxeL6pKDC6nb2PmoCE6hgZM2QXtS88gBm3yL");
 
 #[program]
 pub mod solana_project {
@@ -142,7 +141,7 @@ pub mod solana_project {
             cpi_transfer_sol,
         );
         transfer_sol(cpi_transfer_sol_ctx, rent_lamport + 5000000)?;
-        
+
         emit!(InitializedPDA { pda: account_pda });
 
         Ok(())
@@ -261,9 +260,13 @@ pub mod solana_project {
             None => return Err(MessengerError::Overflow.into()),
             Some(val) => txn_count.count = val,
         }
-        require!(txn_count.count == current_count, MessengerError::InvalidCount);
+        require!(
+            txn_count.count == current_count,
+            MessengerError::InvalidCount
+        );
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
+        let txn_data = &mut ctx.accounts.data_storage;
 
         emit!(StoredMsg {
             msg_type: code,
@@ -273,23 +276,23 @@ pub mod solana_project {
 
         // Switch Based on the code
         match code {
-            2 => process_stream(encoded_str, vaa.emitter_chain, ctx, sender),
-            4 => process_withdraw_stream(encoded_str, vaa.emitter_chain, ctx, sender),
-            6 => process_deposit(encoded_str, vaa.emitter_chain, ctx, sender),
-            8 => process_pause(encoded_str, vaa.emitter_chain, ctx, sender),
-            10 => process_withdraw(encoded_str, vaa.emitter_chain, ctx, sender),
-            12 => process_instant_transfer(encoded_str, vaa.emitter_chain, ctx, sender),
-            14 => process_update_stream(encoded_str, vaa.emitter_chain, ctx, sender),
-            16 => process_cancel_stream(encoded_str, vaa.emitter_chain, ctx, sender),
-            17 => process_direct_transfer(encoded_str, vaa.emitter_chain, ctx, sender),
-            _ =>  Err(MessengerError::InvalidPayload.into()),
+            2 => process_stream(encoded_str, vaa.emitter_chain, txn_data, sender),
+            //4 => process_withdraw_stream(encoded_str, vaa.emitter_chain, ctx, sender),
+            6 => process_deposit(encoded_str, vaa.emitter_chain, txn_data, sender),
+            8 => process_pause(encoded_str, vaa.emitter_chain, txn_data, sender),
+            10 => process_withdraw(encoded_str, vaa.emitter_chain, txn_data, sender),
+            12 => process_instant_transfer(encoded_str, vaa.emitter_chain, txn_data, sender),
+            14 => process_update_stream(encoded_str, vaa.emitter_chain, txn_data, sender),
+            16 => process_cancel_stream(encoded_str, vaa.emitter_chain, txn_data, sender),
+            17 => process_direct_transfer(encoded_str, vaa.emitter_chain, txn_data, sender),
+            _ => Err(MessengerError::InvalidPayload.into()),
         }
     }
 
     //creates and executes deposit transaction
     pub fn transaction_deposit(
         ctx: Context<CETransaction>,
-        
+
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         chain_id: u16,
@@ -318,10 +321,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[1].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender;
-        require!(
-            sender == sender_stored,
-            MessengerError::PdaSenderMismatch
-        );
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
@@ -368,7 +368,7 @@ pub mod solana_project {
     //Txn size too high so spliting creation and execution
     pub fn create_transaction_stream(
         ctx: Context<CreateTransaction>,
-        
+
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
 
@@ -397,10 +397,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[5].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender;
-        require!(
-            sender == sender_stored,
-            MessengerError::PdaSenderMismatch
-        );
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[6].pubkey;
@@ -461,7 +458,7 @@ pub mod solana_project {
     //creates and executes transaction stream update
     pub fn transaction_stream_update(
         ctx: Context<CETransaction>,
-        
+
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         chain_id: u16,
@@ -498,10 +495,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender;
-        require!(
-            sender == sender_stored,
-            MessengerError::PdaSenderMismatch
-        );
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[3].pubkey;
@@ -567,7 +561,7 @@ pub mod solana_project {
     //creates and execute pause/resume stream
     pub fn transaction_pause_resume(
         ctx: Context<CETransaction>,
-        
+
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         chain_id: u16,
@@ -596,10 +590,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[0].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender;
-        require!(
-            sender == sender_stored,
-            MessengerError::PdaSenderMismatch
-        );
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
@@ -649,7 +640,7 @@ pub mod solana_project {
     // create and then execute
     pub fn create_transaction_receiver_withdraw(
         ctx: Context<CreateTransactionReceiver>,
-        
+
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
@@ -717,7 +708,7 @@ pub mod solana_project {
     // creates transaction cancel
     pub fn create_transaction_cancel(
         ctx: Context<CreateTransaction>,
-        
+
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
@@ -752,10 +743,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender;
-        require!(
-            sender == sender_stored,
-            MessengerError::PdaSenderMismatch
-        );
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
@@ -791,7 +779,7 @@ pub mod solana_project {
     // create transaction
     pub fn create_transaction_sender_withdraw(
         ctx: Context<CreateTransaction>,
-        
+
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
 
@@ -820,10 +808,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender;
-        require!(
-            sender == sender_stored,
-            MessengerError::PdaSenderMismatch
-        );
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check pdaSender
         let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
@@ -854,7 +839,7 @@ pub mod solana_project {
     // create transaction
     pub fn create_transaction_instant_transfer(
         ctx: Context<CreateTransaction>,
-        
+
         accs: Vec<TransactionAccount>,
         data: Vec<u8>,
         sender: [u8; 32],
@@ -882,10 +867,7 @@ pub mod solana_project {
         //check sender
         let pda_sender_passed: Pubkey = accs[2].pubkey;
         let sender_stored = ctx.accounts.data_storage.sender;
-        require!(
-            sender == sender_stored,
-            MessengerError::PdaSenderMismatch
-        );
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
         let pda_receiver_passed: Pubkey = accs[1].pubkey;
@@ -950,10 +932,7 @@ pub mod solana_project {
 
         //check sender
         let sender_stored = ctx.accounts.data_storage.sender;
-        require!(
-            sender == sender_stored,
-            MessengerError::PdaSenderMismatch
-        );
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
         let receiver_stored = ctx.accounts.data_storage.receiver;
@@ -999,10 +978,7 @@ pub mod solana_project {
 
         //check sender
         let sender_stored = ctx.accounts.data_storage.sender;
-        require!(
-            sender == sender_stored,
-            MessengerError::PdaSenderMismatch
-        );
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
         let receiver_stored = ctx.accounts.data_storage.receiver;
@@ -1079,6 +1055,910 @@ pub mod solana_project {
         Ok(())
     }
 
+    pub fn stream_withdraw(
+        ctx: Context<XstreamWithdraw>,
+        sender: [u8; 32],
+        from_chain_id: u16,
+        current_count: u64,
+    ) -> Result<()> {
+        //Hash a VAA Extract and derive a VAA Key
+        let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
+        let serialized_vaa = serialize_vaa(&vaa);
+
+        let mut h = sha3::Keccak256::default();
+        h.write_all(serialized_vaa.as_slice()).unwrap();
+        let vaa_hash: [u8; 32] = h.finalize().into();
+
+        let vaa_key = Pubkey::find_program_address(
+            &[b"PostedVAA", &vaa_hash],
+            &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
+        )
+        .0;
+
+        require!(
+            ctx.accounts.core_bridge_vaa.key() == vaa_key,
+            MessengerError::VAAKeyMismatch
+        );
+
+        // Already checked that the SignedVaa is owned by core bridge in account constraint logic
+        // Check that the emitter chain and address match up with the vaa
+        require!(
+            vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
+                && vaa.emitter_address
+                    == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            MessengerError::VAAEmitterMismatch
+        );
+
+        // Encoded String
+        let encoded_str = vaa.payload.clone();
+
+        // Decode Encoded String and Store Value based upon the code sent on message passing
+        let code = get_u8(encoded_str[0..1].to_vec());
+
+        // Change Transaction Count to Current Count
+        let txn_count = &mut ctx.accounts.txn_count;
+        let sum = txn_count.count.checked_add(1);
+
+        match sum {
+            None => return Err(MessengerError::Overflow.into()),
+            Some(val) => txn_count.count = val,
+        }
+        require!(
+            txn_count.count == current_count,
+            MessengerError::InvalidCount
+        );
+
+        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
+
+        let txn_data = &mut ctx.accounts.data_storage;
+
+        // Switch Based on the code
+        match code {
+            4 => process_withdraw_stream(encoded_str, vaa.emitter_chain, txn_data, sender),
+            _ => Err(MessengerError::InvalidPayload.into()),
+        }?;
+
+        //check Mint passed
+        let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
+        require!(
+            mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
+            MessengerError::MintKeyMismatch
+        );
+
+        //check data account
+        let data_account_passed: Pubkey = ctx.accounts.data_account.key();
+        require!(
+            data_account_passed == ctx.accounts.data_storage.data_account,
+            MessengerError::DataAccountMismatch
+        );
+
+        //check sender
+        let pda_sender_passed: Pubkey = ctx.accounts.source_account.key();
+        let sender_stored = ctx.accounts.data_storage.sender;
+
+        //check receiver
+        let pda_receiver_passed: Pubkey = ctx.accounts.pda_signer.key();
+        let receiver_stored = ctx.accounts.data_storage.receiver;
+        require!(
+            sender == receiver_stored,
+            MessengerError::PdaReceiverMismatch
+        );
+
+        //check pdaSender
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let sender_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&sender_stored, &chain_id_seed], ctx.program_id);
+        require!(
+            pda_sender_passed == sender_derived_pubkey.0,
+            MessengerError::SenderDerivedKeyMismatch
+        );
+
+        //check pdaReceiver
+        let receiver_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
+        require!(
+            pda_receiver_passed == receiver_derived_pubkey.0,
+            MessengerError::ReceiverDerivedKeyMismatch
+        );
+
+        let zebec_program = ctx.accounts.zebec_program.to_account_info();
+        let zebec_accounts = zebec::cpi::accounts::TokenWithdrawStream {
+            zebec_vault: ctx.accounts.zebec_vault.to_account_info(),
+            dest_account: ctx.accounts.pda_signer.to_account_info(),
+            source_account: ctx.accounts.source_account.to_account_info(),
+            fee_owner: ctx.accounts.fee_owner.to_account_info(),
+            fee_vault_data: ctx.accounts.fee_vault_data.to_account_info(),
+            fee_vault: ctx.accounts.fee_vault.to_account_info(),
+            data_account: ctx.accounts.data_account.to_account_info(),
+            withdraw_data: ctx.accounts.withdraw_data.to_account_info(),
+            system_program: ctx.accounts.system_program.to_account_info(),
+            token_program: ctx.accounts.token_program.to_account_info(),
+            associated_token_program: ctx.accounts.associated_token_program.to_account_info(),
+            rent: ctx.accounts.rent.to_account_info(),
+            mint: ctx.accounts.mint.to_account_info(),
+            pda_account_token_account: ctx.accounts.pda_account_token_account.to_account_info(),
+            dest_token_account: ctx.accounts.dest_token_account.to_account_info(),
+            fee_receiver_token_account: ctx.accounts.fee_receiver_token_account.to_account_info(),
+        };
+        let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
+        let seeds: &[&[_]] = &[&sender, &from_chain_id.to_be_bytes(), bump.as_ref()];
+        let signer_seeds = &[&seeds[..]];
+        let cpi_ctx = CpiContext::new_with_signer(zebec_program, zebec_accounts, signer_seeds);
+        zebec::cpi::withdraw_token_stream(cpi_ctx)?;
+        Ok(())
+    }
+
+    pub fn stream_start(
+        ctx: Context<XstreamStart>,
+        sender: [u8; 32],
+        from_chain_id: u16,
+        current_count: u64,
+        data: Vec<u8>,
+    ) -> Result<()> {
+        //Hash a VAA Extract and derive a VAA Key
+        let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
+        let serialized_vaa = serialize_vaa(&vaa);
+
+        let mut h = sha3::Keccak256::default();
+        h.write_all(serialized_vaa.as_slice()).unwrap();
+        let vaa_hash: [u8; 32] = h.finalize().into();
+
+        let vaa_key = Pubkey::find_program_address(
+            &[b"PostedVAA", &vaa_hash],
+            &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
+        )
+        .0;
+
+        require!(
+            ctx.accounts.core_bridge_vaa.key() == vaa_key,
+            MessengerError::VAAKeyMismatch
+        );
+
+        // Already checked that the SignedVaa is owned by core bridge in account constraint logic
+        // Check that the emitter chain and address match up with the vaa
+        require!(
+            vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
+                && vaa.emitter_address
+                    == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            MessengerError::VAAEmitterMismatch
+        );
+
+        // Encoded String
+        let encoded_str = vaa.payload.clone();
+
+        // Decode Encoded String and Store Value based upon the code sent on message passing
+        let code = get_u8(encoded_str[0..1].to_vec());
+
+        // Change Transaction Count to Current Count
+        let txn_count = &mut ctx.accounts.txn_count;
+        let sum = txn_count.count.checked_add(1);
+
+        match sum {
+            None => return Err(MessengerError::Overflow.into()),
+            Some(val) => txn_count.count = val,
+        }
+        require!(
+            txn_count.count == current_count,
+            MessengerError::InvalidCount
+        );
+
+        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
+
+        let txn_data = &mut ctx.accounts.data_storage;
+
+        // Switch Based on the code
+        match code {
+            2 => process_stream(encoded_str, vaa.emitter_chain, txn_data, sender),
+            _ => Err(MessengerError::InvalidPayload.into()),
+        }?;
+
+        //check Mint passed
+        let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
+        require!(
+            mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
+            MessengerError::MintKeyMismatch
+        );
+
+        //check sender
+        let pda_sender_passed: Pubkey = ctx.accounts.source_account.key();
+        let sender_stored = ctx.accounts.data_storage.sender;
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
+
+        //check receiver
+        let pda_receiver_passed: Pubkey = ctx.accounts.dest_account.key();
+        let receiver_stored = ctx.accounts.data_storage.receiver;
+
+        //check pdaSender
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
+        let sender_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
+        require!(
+            pda_sender_passed == sender_derived_pubkey.0,
+            MessengerError::SenderDerivedKeyMismatch
+        );
+
+        //check pdaReceiver
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let receiver_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
+        require!(
+            pda_receiver_passed == receiver_derived_pubkey.0,
+            MessengerError::ReceiverDerivedKeyMismatch
+        );
+
+        //check data params passed
+        let data: &[u8] = data.as_slice();
+        let data_slice = &data[8..];
+        let decode_data = Stream::try_from_slice(data_slice)?;
+        require!(
+            decode_data.amount == ctx.accounts.data_storage.amount,
+            MessengerError::AmountMismatch
+        );
+        require!(
+            decode_data.start_time == ctx.accounts.data_storage.start_time,
+            MessengerError::StartTimeMismatch
+        );
+        require!(
+            decode_data.end_time == ctx.accounts.data_storage.end_time,
+            MessengerError::EndTimeMismatch
+        );
+        require!(
+            decode_data.can_cancel == ctx.accounts.data_storage.can_cancel,
+            MessengerError::CanCancelMismatch
+        );
+        require!(
+            decode_data.can_update == ctx.accounts.data_storage.can_update,
+            MessengerError::CanUpdateMismatch
+        );
+
+        let zebec_program = ctx.accounts.zebec_program.to_account_info();
+        let zebec_accounts = zebec::cpi::accounts::TokenStream {
+            dest_account: ctx.accounts.dest_account.to_account_info(),
+            source_account: ctx.accounts.source_account.to_account_info(),
+            fee_owner: ctx.accounts.fee_owner.to_account_info(),
+            fee_vault_data: ctx.accounts.fee_vault_data.to_account_info(),
+            fee_vault: ctx.accounts.fee_vault.to_account_info(),
+            data_account: ctx.accounts.data_account.to_account_info(),
+            withdraw_data: ctx.accounts.withdraw_data.to_account_info(),
+            system_program: ctx.accounts.system_program.to_account_info(),
+            token_program: ctx.accounts.token_program.to_account_info(),
+            rent: ctx.accounts.rent.to_account_info(),
+            mint: ctx.accounts.mint.to_account_info(),
+        };
+        let bump = ctx.bumps.get("source_account").unwrap().to_le_bytes();
+        let seeds: &[&[_]] = &[&sender, &from_chain_id.to_be_bytes(), bump.as_ref()];
+        let signer_seeds = &[&seeds[..]];
+        let cpi_ctx = CpiContext::new_with_signer(zebec_program, zebec_accounts, signer_seeds);
+        zebec::cpi::token_stream(
+            cpi_ctx,
+            decode_data.start_time,
+            decode_data.end_time,
+            decode_data.amount,
+            decode_data.can_cancel,
+            decode_data.can_update,
+        )?;
+        Ok(())
+    }
+
+    pub fn deposit(
+        ctx: Context<XstreamDeposit>,
+        sender: [u8; 32],
+        from_chain_id: u16,
+        current_count: u64,
+        data: Vec<u8>,
+    ) -> Result<()> {
+        //Hash a VAA Extract and derive a VAA Key
+        let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
+        let serialized_vaa = serialize_vaa(&vaa);
+
+        let mut h = sha3::Keccak256::default();
+        h.write_all(serialized_vaa.as_slice()).unwrap();
+        let vaa_hash: [u8; 32] = h.finalize().into();
+
+        let vaa_key = Pubkey::find_program_address(
+            &[b"PostedVAA", &vaa_hash],
+            &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
+        )
+        .0;
+
+        require!(
+            ctx.accounts.core_bridge_vaa.key() == vaa_key,
+            MessengerError::VAAKeyMismatch
+        );
+
+        // Already checked that the SignedVaa is owned by core bridge in account constraint logic
+        // Check that the emitter chain and address match up with the vaa
+        require!(
+            vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
+                && vaa.emitter_address
+                    == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            MessengerError::VAAEmitterMismatch
+        );
+
+        // Encoded String
+        let encoded_str = vaa.payload.clone();
+
+        // Decode Encoded String and Store Value based upon the code sent on message passing
+        let code = get_u8(encoded_str[0..1].to_vec());
+
+        // Change Transaction Count to Current Count
+        let txn_count = &mut ctx.accounts.txn_count;
+        let sum = txn_count.count.checked_add(1);
+
+        match sum {
+            None => return Err(MessengerError::Overflow.into()),
+            Some(val) => txn_count.count = val,
+        }
+        require!(
+            txn_count.count == current_count,
+            MessengerError::InvalidCount
+        );
+
+        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
+
+        let txn_data = &mut ctx.accounts.data_storage;
+
+        // Switch Based on the code
+        match code {
+            6 => process_deposit(encoded_str, vaa.emitter_chain, txn_data, sender),
+            _ => Err(MessengerError::InvalidPayload.into()),
+        }?;
+
+        //check Mint passed
+        let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
+        require!(
+            mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
+            MessengerError::MintKeyMismatch
+        );
+
+        //check sender
+        let pda_sender_passed: Pubkey = ctx.accounts.source_account.key();
+        let sender_stored = ctx.accounts.data_storage.sender;
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
+
+        //check pdaSender
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
+        let derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
+        require!(
+            pda_sender_passed == derived_pubkey.0,
+            MessengerError::SenderDerivedKeyMismatch
+        );
+
+        //check data params passed
+        let data: &[u8] = data.as_slice();
+        let data_slice = &data[8..];
+        let decode_data = TokenAmount::try_from_slice(data_slice)?;
+        let amount_passed = decode_data.amount;
+        require!(
+            amount_passed == ctx.accounts.data_storage.amount,
+            MessengerError::AmountMismatch
+        );
+
+        let zebec_program = ctx.accounts.zebec_program.to_account_info();
+        let zebec_accounts = zebec::cpi::accounts::TokenDeposit {
+            zebec_vault: ctx.accounts.zebec_vault.to_account_info(),
+            source_account: ctx.accounts.source_account.to_account_info(),
+            system_program: ctx.accounts.system_program.to_account_info(),
+            token_program: ctx.accounts.token_program.to_account_info(),
+            associated_token_program: ctx.accounts.associated_token_program.to_account_info(),
+            rent: ctx.accounts.rent.to_account_info(),
+            mint: ctx.accounts.mint.to_account_info(),
+            pda_account_token_account: ctx.accounts.pda_account_token_account.to_account_info(),
+            source_account_token_account: ctx
+                .accounts
+                .source_account_token_account
+                .to_account_info(),
+        };
+        let bump = ctx.bumps.get("source_account").unwrap().to_le_bytes();
+        let seeds: &[&[_]] = &[&sender, &from_chain_id.to_be_bytes(), bump.as_ref()];
+        let signer_seeds = &[&seeds[..]];
+        let cpi_ctx = CpiContext::new_with_signer(zebec_program, zebec_accounts, signer_seeds);
+        zebec::cpi::deposit_token(cpi_ctx, decode_data.amount)?;
+        Ok(())
+    }
+
+    pub fn sender_withdraw(
+        ctx: Context<XstreamSenderWithdraw>,
+        sender: [u8; 32],
+        from_chain_id: u16,
+        current_count: u64,
+        data: Vec<u8>,
+    ) -> Result<()> {
+        //Hash a VAA Extract and derive a VAA Key
+        let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
+        let serialized_vaa = serialize_vaa(&vaa);
+
+        let mut h = sha3::Keccak256::default();
+        h.write_all(serialized_vaa.as_slice()).unwrap();
+        let vaa_hash: [u8; 32] = h.finalize().into();
+
+        let vaa_key = Pubkey::find_program_address(
+            &[b"PostedVAA", &vaa_hash],
+            &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
+        )
+        .0;
+
+        require!(
+            ctx.accounts.core_bridge_vaa.key() == vaa_key,
+            MessengerError::VAAKeyMismatch
+        );
+
+        // Already checked that the SignedVaa is owned by core bridge in account constraint logic
+        // Check that the emitter chain and address match up with the vaa
+        require!(
+            vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
+                && vaa.emitter_address
+                    == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            MessengerError::VAAEmitterMismatch
+        );
+
+        // Encoded String
+        let encoded_str = vaa.payload.clone();
+
+        // Decode Encoded String and Store Value based upon the code sent on message passing
+        let code = get_u8(encoded_str[0..1].to_vec());
+
+        // Change Transaction Count to Current Count
+        let txn_count = &mut ctx.accounts.txn_count;
+        let sum = txn_count.count.checked_add(1);
+
+        match sum {
+            None => return Err(MessengerError::Overflow.into()),
+            Some(val) => txn_count.count = val,
+        }
+        require!(
+            txn_count.count == current_count,
+            MessengerError::InvalidCount
+        );
+
+        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
+
+        let txn_data = &mut ctx.accounts.data_storage;
+
+        // Switch Based on the code
+        match code {
+            6 => process_deposit(encoded_str, vaa.emitter_chain, txn_data, sender),
+            _ => Err(MessengerError::InvalidPayload.into()),
+        }?;
+
+        //check Mint passed
+        let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
+        require!(
+            mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
+            MessengerError::MintKeyMismatch
+        );
+
+        //check sender
+        let pda_sender_passed: Pubkey = ctx.accounts.source_account.key();
+        let sender_stored = ctx.accounts.data_storage.sender;
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
+
+        //check pdaSender
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
+        let sender_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
+        require!(
+            pda_sender_passed == sender_derived_pubkey.0,
+            MessengerError::SenderDerivedKeyMismatch
+        );
+
+        //check data params passed
+        let data: &[u8] = data.as_slice();
+        let data_slice = &data[8..];
+        let decode_data = TokenAmount::try_from_slice(data_slice)?;
+        require!(
+            decode_data.amount == ctx.accounts.data_storage.amount,
+            MessengerError::AmountMismatch
+        );
+
+        let zebec_program = ctx.accounts.zebec_program.to_account_info();
+        let zebec_accounts = zebec::cpi::accounts::InitializerTokenWithdrawal {
+            zebec_vault: ctx.accounts.zebec_vault.to_account_info(),
+            source_account: ctx.accounts.source_account.to_account_info(),
+            withdraw_data: ctx.accounts.withdraw_data.to_account_info(),
+            system_program: ctx.accounts.system_program.to_account_info(),
+            token_program: ctx.accounts.token_program.to_account_info(),
+            associated_token_program: ctx.accounts.associated_token_program.to_account_info(),
+            rent: ctx.accounts.rent.to_account_info(),
+            mint: ctx.accounts.mint.to_account_info(),
+            source_account_token_account: ctx
+                .accounts
+                .source_account_token_account
+                .to_account_info(),
+            pda_account_token_account: ctx.accounts.pda_account_token_account.to_account_info(),
+        };
+        let bump = ctx.bumps.get("source_account").unwrap().to_le_bytes();
+        let seeds: &[&[_]] = &[&sender, &from_chain_id.to_be_bytes(), bump.as_ref()];
+        let signer_seeds = &[&seeds[..]];
+        let cpi_ctx = CpiContext::new_with_signer(zebec_program, zebec_accounts, signer_seeds);
+        zebec::cpi::token_withdrawal(cpi_ctx, decode_data.amount)?;
+        Ok(())
+    }
+
+    pub fn stream_pause(
+        ctx: Context<XstreamPause>,
+        sender: [u8; 32],
+        from_chain_id: u16,
+        current_count: u64,
+    ) -> Result<()> {
+        //Hash a VAA Extract and derive a VAA Key
+        let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
+        let serialized_vaa = serialize_vaa(&vaa);
+
+        let mut h = sha3::Keccak256::default();
+        h.write_all(serialized_vaa.as_slice()).unwrap();
+        let vaa_hash: [u8; 32] = h.finalize().into();
+
+        let vaa_key = Pubkey::find_program_address(
+            &[b"PostedVAA", &vaa_hash],
+            &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
+        )
+        .0;
+
+        require!(
+            ctx.accounts.core_bridge_vaa.key() == vaa_key,
+            MessengerError::VAAKeyMismatch
+        );
+
+        // Already checked that the SignedVaa is owned by core bridge in account constraint logic
+        // Check that the emitter chain and address match up with the vaa
+        require!(
+            vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
+                && vaa.emitter_address
+                    == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            MessengerError::VAAEmitterMismatch
+        );
+
+        // Encoded String
+        let encoded_str = vaa.payload.clone();
+
+        // Decode Encoded String and Store Value based upon the code sent on message passing
+        let code = get_u8(encoded_str[0..1].to_vec());
+
+        // Change Transaction Count to Current Count
+        let txn_count = &mut ctx.accounts.txn_count;
+        let sum = txn_count.count.checked_add(1);
+
+        match sum {
+            None => return Err(MessengerError::Overflow.into()),
+            Some(val) => txn_count.count = val,
+        }
+        require!(
+            txn_count.count == current_count,
+            MessengerError::InvalidCount
+        );
+
+        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
+
+        let txn_data = &mut ctx.accounts.data_storage;
+
+        // Switch Based on the code
+        match code {
+            4 => process_withdraw_stream(encoded_str, vaa.emitter_chain, txn_data, sender),
+            _ => Err(MessengerError::InvalidPayload.into()),
+        }?;
+
+        //check data account
+        let data_account_passed: Pubkey = ctx.accounts.data_account.key();
+        require!(
+            data_account_passed == ctx.accounts.data_storage.data_account,
+            MessengerError::DataAccountMismatch
+        );
+
+        //check sender
+        let pda_sender_passed: Pubkey = ctx.accounts.source_account.key();
+        let sender_stored = ctx.accounts.data_storage.sender;
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
+
+        //check receiver
+        let pda_receiver_passed: Pubkey = ctx.accounts.dest_account.key();
+        let receiver_stored = ctx.accounts.data_storage.receiver;
+
+        //check pdaSender
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
+        let sender_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
+        require!(
+            pda_sender_passed == sender_derived_pubkey.0,
+            MessengerError::SenderDerivedKeyMismatch
+        );
+
+        //check pdaReceiver
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let receiver_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
+        require!(
+            pda_receiver_passed == receiver_derived_pubkey.0,
+            MessengerError::ReceiverDerivedKeyMismatch
+        );
+
+        let zebec_program = ctx.accounts.zebec_program.to_account_info();
+        let zebec_accounts = zebec::cpi::accounts::PauseTokenStream {
+            data_account: ctx.accounts.data_account.to_account_info(),
+            withdraw_data: ctx.accounts.withdraw_data.to_account_info(),
+            mint: ctx.accounts.mint.to_account_info(),
+            sender: ctx.accounts.source_account.to_account_info(),
+            receiver: ctx.accounts.dest_account.to_account_info(),
+        };
+        let bump = ctx.bumps.get("source_account").unwrap().to_le_bytes();
+        let seeds: &[&[_]] = &[&sender, &from_chain_id.to_be_bytes(), bump.as_ref()];
+        let signer_seeds = &[&seeds[..]];
+        let cpi_ctx = CpiContext::new_with_signer(zebec_program, zebec_accounts, signer_seeds);
+        zebec::cpi::pause_resume_token_stream(cpi_ctx)?;
+        Ok(())
+    }
+
+    pub fn stream_cancel(
+        ctx: Context<XstreamCancel>,
+        sender: [u8; 32],
+        from_chain_id: u16,
+        current_count: u64,
+    ) -> Result<()> {
+        //Hash a VAA Extract and derive a VAA Key
+        let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
+        let serialized_vaa = serialize_vaa(&vaa);
+
+        let mut h = sha3::Keccak256::default();
+        h.write_all(serialized_vaa.as_slice()).unwrap();
+        let vaa_hash: [u8; 32] = h.finalize().into();
+
+        let vaa_key = Pubkey::find_program_address(
+            &[b"PostedVAA", &vaa_hash],
+            &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
+        )
+        .0;
+
+        require!(
+            ctx.accounts.core_bridge_vaa.key() == vaa_key,
+            MessengerError::VAAKeyMismatch
+        );
+
+        // Already checked that the SignedVaa is owned by core bridge in account constraint logic
+        // Check that the emitter chain and address match up with the vaa
+        require!(
+            vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
+                && vaa.emitter_address
+                    == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            MessengerError::VAAEmitterMismatch
+        );
+
+        // Encoded String
+        let encoded_str = vaa.payload.clone();
+
+        // Decode Encoded String and Store Value based upon the code sent on message passing
+        let code = get_u8(encoded_str[0..1].to_vec());
+
+        // Change Transaction Count to Current Count
+        let txn_count = &mut ctx.accounts.txn_count;
+        let sum = txn_count.count.checked_add(1);
+
+        match sum {
+            None => return Err(MessengerError::Overflow.into()),
+            Some(val) => txn_count.count = val,
+        }
+        require!(
+            txn_count.count == current_count,
+            MessengerError::InvalidCount
+        );
+
+        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
+
+        let txn_data = &mut ctx.accounts.data_storage;
+
+        // Switch Based on the code
+        match code {
+            4 => process_withdraw_stream(encoded_str, vaa.emitter_chain, txn_data, sender),
+            _ => Err(MessengerError::InvalidPayload.into()),
+        }?;
+
+        //check Mint passed
+        let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
+        require!(
+            mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
+            MessengerError::MintKeyMismatch
+        );
+
+        //check data account
+        let data_account_passed: Pubkey = ctx.accounts.data_account.key();
+        require!(
+            data_account_passed == ctx.accounts.data_storage.data_account,
+            MessengerError::DataAccountMismatch
+        );
+
+        //check sender
+        let pda_sender_passed: Pubkey = ctx.accounts.source_account.key();
+        let sender_stored = ctx.accounts.data_storage.sender;
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
+
+        //check receiver
+        let pda_receiver_passed: Pubkey = ctx.accounts.dest_account.key();
+        let receiver_stored = ctx.accounts.data_storage.receiver;
+
+        //check pdaSender
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
+        let sender_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
+        require!(
+            pda_sender_passed == sender_derived_pubkey.0,
+            MessengerError::SenderDerivedKeyMismatch
+        );
+
+        //check pdaReceiver
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let receiver_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
+        require!(
+            pda_receiver_passed == receiver_derived_pubkey.0,
+            MessengerError::ReceiverDerivedKeyMismatch
+        );
+
+        let zebec_program = ctx.accounts.zebec_program.to_account_info();
+        let zebec_accounts = zebec::cpi::accounts::CancelTokenStream {
+            zebec_vault: ctx.accounts.zebec_vault.to_account_info(),
+            dest_account: ctx.accounts.dest_account.to_account_info(),
+            source_account: ctx.accounts.source_account.to_account_info(),
+            fee_owner: ctx.accounts.fee_owner.to_account_info(),
+            fee_vault_data: ctx.accounts.fee_vault_data.to_account_info(),
+            fee_vault: ctx.accounts.fee_vault.to_account_info(),
+            data_account: ctx.accounts.data_account.to_account_info(),
+            withdraw_data: ctx.accounts.withdraw_data.to_account_info(),
+            system_program: ctx.accounts.system_program.to_account_info(),
+            token_program: ctx.accounts.token_program.to_account_info(),
+            associated_token_program: ctx.accounts.associated_token_program.to_account_info(),
+            rent: ctx.accounts.rent.to_account_info(),
+            mint: ctx.accounts.mint.to_account_info(),
+            pda_account_token_account: ctx.accounts.pda_account_token_account.to_account_info(),
+            dest_token_account: ctx.accounts.dest_token_account.to_account_info(),
+            fee_receiver_token_account: ctx.accounts.fee_receiver_token_account.to_account_info(),
+        };
+        let bump = ctx.bumps.get("source_account").unwrap().to_le_bytes();
+        let seeds: &[&[_]] = &[&sender, &from_chain_id.to_be_bytes(), bump.as_ref()];
+        let signer_seeds = &[&seeds[..]];
+        let cpi_ctx = CpiContext::new_with_signer(zebec_program, zebec_accounts, signer_seeds);
+        zebec::cpi::cancel_token_stream(cpi_ctx)?;
+        Ok(())
+    }
+
+    pub fn instant_transfer(
+        ctx: Context<XstreamInstant>,
+        sender: [u8; 32],
+        from_chain_id: u16,
+        current_count: u64,
+        data: Vec<u8>,
+    ) -> Result<()> {
+        //Hash a VAA Extracts and derive a VAA Key
+        let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
+        let serialized_vaa = serialize_vaa(&vaa);
+
+        let mut h = sha3::Keccak256::default();
+        h.write_all(serialized_vaa.as_slice()).unwrap();
+        let vaa_hash: [u8; 32] = h.finalize().into();
+
+        let vaa_key = Pubkey::find_program_address(
+            &[b"PostedVAA", &vaa_hash],
+            &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
+        )
+        .0;
+
+        require!(
+            ctx.accounts.core_bridge_vaa.key() == vaa_key,
+            MessengerError::VAAKeyMismatch
+        );
+
+        // Already checked that the SignedVaa is owned by core bridge in account constraint logic
+        // Check that the emitter chain and address match up with the vaa
+        require!(
+            vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
+                && vaa.emitter_address
+                    == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            MessengerError::VAAEmitterMismatch
+        );
+
+        // Encoded String
+        let encoded_str = vaa.payload.clone();
+
+        // Decode Encoded String and Store Value based upon the code sent on message passing
+        let code = get_u8(encoded_str[0..1].to_vec());
+
+        // Change Transaction Count to Current Count
+        let txn_count = &mut ctx.accounts.txn_count;
+        let sum = txn_count.count.checked_add(1);
+
+        match sum {
+            None => return Err(MessengerError::Overflow.into()),
+            Some(val) => txn_count.count = val,
+        }
+        require!(
+            txn_count.count == current_count,
+            MessengerError::InvalidCount
+        );
+
+        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
+
+        let txn_data = &mut ctx.accounts.data_storage;
+
+        // Switch Based on the code
+        match code {
+            4 => process_withdraw_stream(encoded_str, vaa.emitter_chain, txn_data, sender),
+            _ => Err(MessengerError::InvalidPayload.into()),
+        }?;
+
+        //check Mint passed
+        let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
+        require!(
+            mint_pubkey_passed == ctx.accounts.data_storage.token_mint,
+            MessengerError::MintKeyMismatch
+        );
+
+        //check sender
+        let pda_sender_passed: Pubkey = ctx.accounts.source_account.key();
+        let sender_stored = ctx.accounts.data_storage.sender;
+        require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
+
+        //check receiver
+        let pda_receiver_passed: Pubkey = ctx.accounts.dest_account.key();
+        let receiver_stored = ctx.accounts.data_storage.receiver;
+
+        //check pdaSender
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = &chain_id_stored.to_be_bytes();
+        let sender_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
+        require!(
+            pda_sender_passed == sender_derived_pubkey.0,
+            MessengerError::SenderDerivedKeyMismatch
+        );
+
+        //check pdaReceiver
+        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let receiver_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
+        require!(
+            pda_receiver_passed == receiver_derived_pubkey.0,
+            MessengerError::ReceiverDerivedKeyMismatch
+        );
+
+        //check data params passed
+        let data: &[u8] = data.as_slice();
+        let data_slice = &data[8..];
+        let decode_data = TokenAmount::try_from_slice(data_slice)?;
+        require!(
+            decode_data.amount == ctx.accounts.data_storage.amount,
+            MessengerError::AmountMismatch
+        );
+
+        let zebec_program = ctx.accounts.zebec_program.to_account_info();
+        let zebec_accounts = zebec::cpi::accounts::TokenInstantTransfer {
+            zebec_vault: ctx.accounts.zebec_vault.to_account_info(),
+            dest_account: ctx.accounts.source_account.to_account_info(),
+            source_account: ctx.accounts.source_account.to_account_info(),
+            withdraw_data: ctx.accounts.withdraw_data.to_account_info(),
+            system_program: ctx.accounts.system_program.to_account_info(),
+            token_program: ctx.accounts.token_program.to_account_info(),
+            associated_token_program: ctx.accounts.associated_token_program.to_account_info(),
+            rent: ctx.accounts.rent.to_account_info(),
+            mint: ctx.accounts.mint.to_account_info(),
+            pda_account_token_account: ctx.accounts.pda_account_token_account.to_account_info(),
+            dest_token_account: ctx.accounts.dest_token_account.to_account_info(),
+        };
+        let bump = ctx.bumps.get("source_account").unwrap().to_le_bytes();
+        let seeds: &[&[_]] = &[&sender, &from_chain_id.to_be_bytes(), bump.as_ref()];
+        let signer_seeds = &[&seeds[..]];
+        let cpi_ctx = CpiContext::new_with_signer(zebec_program, zebec_accounts, signer_seeds);
+        zebec::cpi::instant_token_transfer(cpi_ctx, decode_data.amount)?;
+        Ok(())
+    }
 }
 
 fn transfer_wrapped(
@@ -1192,7 +2072,7 @@ fn transfer_native(
     sender_chain: u16,
     target_chain: u16,
     fee: u64,
-    receiver: [u8;32],
+    receiver: [u8; 32],
 ) -> Result<()> {
     let amount = ctx.accounts.data_storage.amount;
     //Check EOA
@@ -1307,7 +2187,7 @@ fn get_u8(data_bytes: Vec<u8>) -> u64 {
     u64::from_be_bytes(data_u8)
 }
 
-fn get_u32_array(data_bytes: Vec<u8>) -> [u8;32]{
+fn get_u32_array(data_bytes: Vec<u8>) -> [u8; 32] {
     let data_result = data_bytes.try_into().unwrap();
     return data_result;
 }
@@ -1329,12 +2209,9 @@ pub fn serialize_vaa(vaa: &MessageData) -> Vec<u8> {
 fn process_deposit(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
-    ctx: Context<StoreMsg>,
-    sender: [u8;32],
+    transaction_data: &mut Account<TransactionData>,
+    sender: [u8; 32],
 ) -> Result<()> {
-
-    let transaction_data = &mut ctx.accounts.data_storage;
-
     let amount = get_u64(encoded_str[1..9].to_vec());
     let to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let senderbytes = get_u32_array(encoded_str[41..73].to_vec());
@@ -1356,10 +2233,9 @@ fn process_deposit(
 fn process_stream(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
-    ctx: Context<StoreMsg>,
-    sender: [u8;32]
+    transaction_data: &mut Account<TransactionData>,
+    sender: [u8; 32],
 ) -> Result<()> {
-    let transaction_data = &mut ctx.accounts.data_storage;
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
     let amount = get_u64(encoded_str[17..25].to_vec());
@@ -1396,10 +2272,9 @@ fn process_stream(
 fn process_update_stream(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
-    ctx: Context<StoreMsg>,
-    sender: [u8;32],
+    transaction_data: &mut Account<TransactionData>,
+    sender: [u8; 32],
 ) -> Result<()> {
-    let transaction_data = &mut ctx.accounts.data_storage;
     let start_time = get_u64(encoded_str[1..9].to_vec());
     let end_time = get_u64(encoded_str[9..17].to_vec());
     let amount = get_u64(encoded_str[17..25].to_vec());
@@ -1432,10 +2307,9 @@ fn process_update_stream(
 fn process_pause(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
-    ctx: Context<StoreMsg>,
-    sender: [u8;32],
+    transaction_data: &mut Account<TransactionData>,
+    sender: [u8; 32],
 ) -> Result<()> {
-    let transaction_data = &mut ctx.accounts.data_storage;
     let to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let depositor_wallet_bytes = get_u32_array(encoded_str[33..65].to_vec());
     let token_mint = &encoded_str[65..97].to_vec();
@@ -1463,10 +2337,9 @@ fn process_pause(
 fn process_withdraw_stream(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
-    ctx: Context<StoreMsg>,
+    transaction_data: &mut Account<TransactionData>,
     receiver: [u8; 32],
 ) -> Result<()> {
-    let transaction_data = &mut ctx.accounts.data_storage;
     let to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let withdrawer_wallet_bytes = get_u32_array(encoded_str[33..65].to_vec());
     let token_mint = &encoded_str[65..97].to_vec();
@@ -1494,10 +2367,9 @@ fn process_withdraw_stream(
 fn process_cancel_stream(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
-    ctx: Context<StoreMsg>,
-    sender: [u8;32],
+    transaction_data: &mut Account<TransactionData>,
+    sender: [u8; 32],
 ) -> Result<()> {
-    let transaction_data = &mut ctx.accounts.data_storage;
     let to_chain_id = get_u256(encoded_str[1..33].to_vec());
     let depositor_wallet_bytes = get_u32_array(encoded_str[33..65].to_vec());
     let token_mint = &encoded_str[65..97].to_vec();
@@ -1526,10 +2398,9 @@ fn process_cancel_stream(
 fn process_withdraw(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
-    ctx: Context<StoreMsg>,
-    sender: [u8;32],
+    transaction_data: &mut Account<TransactionData>,
+    sender: [u8; 32],
 ) -> Result<()> {
-    let transaction_data = &mut ctx.accounts.data_storage;
     let amount = get_u64(encoded_str[1..9].to_vec());
     let to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let withdrawer_wallet_bytes = get_u32_array(encoded_str[41..73].to_vec());
@@ -1554,11 +2425,9 @@ fn process_withdraw(
 fn process_instant_transfer(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
-    ctx: Context<StoreMsg>,
-    sender: [u8;32],
+    transaction_data: &mut Account<TransactionData>,
+    sender: [u8; 32],
 ) -> Result<()> {
-    let transaction_data = &mut ctx.accounts.data_storage;
-
     let amount = get_u64(encoded_str[1..9].to_vec());
     let to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let senderwallet_bytes = get_u32_array(encoded_str[41..73].to_vec());
@@ -1585,11 +2454,9 @@ fn process_instant_transfer(
 fn process_direct_transfer(
     encoded_str: Vec<u8>,
     from_chain_id: u16,
-    ctx: Context<StoreMsg>,
-    sender: [u8;32],
+    transaction_data: &mut Account<TransactionData>,
+    sender: [u8; 32],
 ) -> Result<()> {
-    let transaction_data = &mut ctx.accounts.data_storage;
-
     let amount = get_u64(encoded_str[1..9].to_vec());
     let to_chain_id = get_u256(encoded_str[9..41].to_vec());
     let senderwallet_bytes = get_u32_array(encoded_str[41..73].to_vec());

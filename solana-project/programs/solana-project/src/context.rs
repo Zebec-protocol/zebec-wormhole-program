@@ -9,6 +9,9 @@ use crate::state::*;
 use std::str::FromStr;
 use crate::wormhole::*;
 use hex::decode;
+use zebec::{TokenWithdraw, StreamToken, FeeVaultData};
+use zebec::constants::{OPERATE, OPERATEDATA, PREFIX_TOKEN};
+use zebec::program::Zebec;
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -579,8 +582,7 @@ pub struct CreateTransactionReceiver<'info> {
     sender: [u8; 32], 
 )]
 pub struct StoreMsg<'info>{
-
-    // // ZEBEC's EOA.
+    // ZEBEC's EOA.
     #[account(mut)]
     pub payer: Signer<'info>,
     pub system_program: Program<'info, System>,
@@ -676,4 +678,938 @@ pub struct ExecuteTransaction<'info> {
         bump
     )]
     pub txn_status: Account<'info, TransactionStatus>,
+}
+
+#[derive(Accounts)]
+#[instruction(
+    sender:[u8;32],
+    from_chain_id: u16,
+    current_count: u64
+)]
+pub struct XstreamStart<'info> {
+    // ZEBEC's EOA.
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(
+        init,
+        payer=payer,
+        space= 8 + 8,
+        seeds=[
+            &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            emitter_acc.chain_id.to_be_bytes().as_ref(),
+            (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
+        ],
+        bump,
+    )]
+    pub processed_vaa: Box<Account<'info, ProcessedVAA>>,
+    pub emitter_acc: Box<Account<'info, EmitterAddrAccount>>,
+    /// This requires some fancy hashing, so confirm it's derived address in the function itself.
+    #[account(
+        constraint = core_bridge_vaa.to_account_info().owner == &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
+    )]
+    /// CHECK: This account is owned by Core Bridge so we trust it
+    pub core_bridge_vaa: AccountInfo<'info>,
+
+    #[account(
+        init,
+        space = 8 + 156,
+        payer = payer,
+        seeds = [
+            b"data_store".as_ref(),
+            &sender, 
+            &current_count.to_be_bytes()
+        ],
+        bump,
+    )]
+    pub data_storage: Box<Account<'info, TransactionData>>,
+
+    #[account(
+        init_if_needed,
+        payer = payer, 
+        space = 8 + 8,
+        seeds = [
+            b"txn_count".as_ref(),
+            &sender,
+        ],
+        bump
+    )]
+    pub txn_count: Box<Account<'info, Count>>,
+
+    #[account(
+        init, 
+        payer = payer,
+        space = 8 + 1,
+        seeds = [
+            b"txn_status".as_ref(),
+            &sender,
+            &current_count.to_be_bytes()
+        ],
+        bump
+    )]
+    pub txn_status: Box<Account<'info, TransactionStatus>>,
+    #[account(zero)]
+    pub data_account:  Account<'info, StreamToken>,
+    #[account(
+        init_if_needed,
+        payer=source_account,
+        seeds = [
+            PREFIX_TOKEN.as_bytes(),
+            source_account.key().as_ref(),
+            mint.key().as_ref(),
+        ],bump,
+        space=8+8,
+    )]
+    pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
+    /// CHECK: validated in fee_vault constraint
+    pub fee_owner:AccountInfo<'info>,
+    #[account(
+        seeds = [
+            fee_owner.key().as_ref(),
+            OPERATEDATA.as_bytes(),
+            fee_vault.key().as_ref(),
+        ],bump
+    )]
+    pub fee_vault_data: Account<'info,FeeVaultData>,
+    #[account(
+        constraint = fee_vault_data.fee_owner == fee_owner.key(),
+        constraint = fee_vault_data.fee_vault_address == fee_vault.key(),
+        seeds = [
+            fee_owner.key().as_ref(),
+            OPERATE.as_bytes(),           
+        ],bump,        
+    )]
+    /// CHECK: seeds has been checked
+    pub fee_vault:AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds = [
+            &sender,
+            &from_chain_id.to_be_bytes()
+        ],
+        bump
+    )]
+    pub source_account: UncheckedAccount<'info>,
+    /// CHECK: new stream receiver, do not need to be checked
+    pub dest_account: AccountInfo<'info>,
+    pub system_program: Program<'info, System>,
+    pub token_program:Program<'info,Token>,
+    pub mint:Account<'info,Mint>,
+    pub rent: Sysvar<'info, Rent>,
+    pub zebec_program: Program<'info, Zebec>
+
+}
+
+#[derive(Accounts)]
+#[instruction(
+    sender:[u8;32],
+    from_chain_id: u16,
+    current_count: u64
+)]
+pub struct XstreamUpdate<'info> {
+    // ZEBEC's EOA.
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(
+        init,
+        payer=payer,
+        space= 8 + 8,
+        seeds=[
+            &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            emitter_acc.chain_id.to_be_bytes().as_ref(),
+            (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
+        ],
+        bump,
+    )]
+    pub processed_vaa: Box<Account<'info, ProcessedVAA>>,
+    pub emitter_acc: Box<Account<'info, EmitterAddrAccount>>,
+    /// This requires some fancy hashing, so confirm it's derived address in the function itself.
+    #[account(
+        constraint = core_bridge_vaa.to_account_info().owner == &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
+    )]
+    /// CHECK: This account is owned by Core Bridge so we trust it
+    pub core_bridge_vaa: AccountInfo<'info>,
+
+    #[account(
+        init,
+        space = 8 + 156,
+        payer = payer,
+        seeds = [
+            b"data_store".as_ref(),
+            &sender, 
+            &current_count.to_be_bytes()
+        ],
+        bump,
+    )]
+    pub data_storage: Box<Account<'info, TransactionData>>,
+
+    #[account(
+        init_if_needed,
+        payer = payer, 
+        space = 8 + 8,
+        seeds = [
+            b"txn_count".as_ref(),
+            &sender,
+        ],
+        bump
+    )]
+    pub txn_count: Box<Account<'info, Count>>,
+
+    #[account(
+        init, 
+        payer = payer,
+        space = 8 + 1,
+        seeds = [
+            b"txn_status".as_ref(),
+            &sender,
+            &current_count.to_be_bytes()
+        ],
+        bump
+    )]
+    pub txn_status: Box<Account<'info, TransactionStatus>>,
+    #[account(mut,
+        constraint= data_account.sender==source_account.key(),
+        constraint= data_account.receiver==dest_account.key(), 
+        constraint= data_account.token_mint==mint.key(),            
+    )]
+    pub data_account:  Account<'info, StreamToken>,
+    #[account(mut,
+        seeds = [
+            PREFIX_TOKEN.as_bytes(),
+            source_account.key().as_ref(),
+            mint.key().as_ref(),
+        ],bump
+    )]
+    pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
+    #[account(
+        mut,
+        seeds = [
+            &sender,
+            &from_chain_id.to_be_bytes()
+        ],
+        bump
+    )]
+    pub source_account: UncheckedAccount<'info>,
+    /// CHECK: stream receiver checked in data account
+    pub dest_account: AccountInfo<'info>,
+    pub mint:Account<'info,Mint>,
+    pub system_program: Program<'info, System>,
+    pub zebec_program: Program<'info, Zebec>
+
+}
+
+#[derive(Accounts)]
+#[instruction(
+    sender:[u8;32],
+    from_chain_id: u16,
+    current_count: u64
+)]
+pub struct XstreamDeposit<'info> {
+    // ZEBEC's EOA.
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(
+        init,
+        payer=payer,
+        space= 8 + 8,
+        seeds=[
+            &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            emitter_acc.chain_id.to_be_bytes().as_ref(),
+            (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
+        ],
+        bump,
+    )]
+    pub processed_vaa: Box<Account<'info, ProcessedVAA>>,
+    pub emitter_acc: Box<Account<'info, EmitterAddrAccount>>,
+    /// This requires some fancy hashing, so confirm it's derived address in the function itself.
+    #[account(
+        constraint = core_bridge_vaa.to_account_info().owner == &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
+    )]
+    /// CHECK: This account is owned by Core Bridge so we trust it
+    pub core_bridge_vaa: AccountInfo<'info>,
+
+    #[account(
+        init,
+        space = 8 + 156,
+        payer = payer,
+        seeds = [
+            b"data_store".as_ref(),
+            &sender, 
+            &current_count.to_be_bytes()
+        ],
+        bump,
+    )]
+    pub data_storage: Box<Account<'info, TransactionData>>,
+
+    #[account(
+        init_if_needed,
+        payer = payer, 
+        space = 8 + 8,
+        seeds = [
+            b"txn_count".as_ref(),
+            &sender,
+        ],
+        bump
+    )]
+    pub txn_count: Box<Account<'info, Count>>,
+
+    #[account(
+        init, 
+        payer = payer,
+        space = 8 + 1,
+        seeds = [
+            b"txn_status".as_ref(),
+            &sender,
+            &current_count.to_be_bytes()
+        ],
+        bump
+    )]
+    pub txn_status: Box<Account<'info, TransactionStatus>>,
+    #[account(
+        init_if_needed,
+        payer=source_account,
+        seeds = [
+            source_account.key().as_ref(),
+        ],bump,
+        space=0,
+    )]
+     /// CHECK: seeds has been checked
+    pub zebec_vault: AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds = [
+            &sender,
+            &from_chain_id.to_be_bytes()
+        ],
+        bump
+    )]
+    pub source_account: UncheckedAccount<'info>,
+    pub system_program: Program<'info, System>,
+    pub token_program:Program<'info,Token>,
+    pub associated_token_program:Program<'info,AssociatedToken>,
+    pub rent: Sysvar<'info, Rent>,
+    pub mint:Account<'info,Mint>,
+    #[account(
+        mut,
+        constraint= source_account_token_account.owner == source_account.key(),
+        constraint= source_account_token_account.mint == mint.key()
+    )]
+    pub source_account_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        init_if_needed,
+        payer = source_account,
+        associated_token::mint = mint,
+        associated_token::authority = zebec_vault,
+    )]
+    pub pda_account_token_account: Account<'info, TokenAccount>,
+    pub zebec_program: Program<'info, Zebec>
+
+}
+
+#[derive(Accounts)]
+#[instruction(
+    sender:[u8;32],
+    from_chain_id: u16,
+    current_count: u64
+)]
+pub struct XstreamSenderWithdraw<'info> {
+    // ZEBEC's EOA.
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(
+        init,
+        payer=payer,
+        space= 8 + 8,
+        seeds=[
+            &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            emitter_acc.chain_id.to_be_bytes().as_ref(),
+            (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
+        ],
+        bump,
+    )]
+    pub processed_vaa: Box<Account<'info, ProcessedVAA>>,
+    pub emitter_acc: Box<Account<'info, EmitterAddrAccount>>,
+    /// This requires some fancy hashing, so confirm it's derived address in the function itself.
+    #[account(
+        constraint = core_bridge_vaa.to_account_info().owner == &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
+    )]
+    /// CHECK: This account is owned by Core Bridge so we trust it
+    pub core_bridge_vaa: AccountInfo<'info>,
+
+    #[account(
+        init,
+        space = 8 + 156,
+        payer = payer,
+        seeds = [
+            b"data_store".as_ref(),
+            &sender, 
+            &current_count.to_be_bytes()
+        ],
+        bump,
+    )]
+    pub data_storage: Box<Account<'info, TransactionData>>,
+
+    #[account(
+        init_if_needed,
+        payer = payer, 
+        space = 8 + 8,
+        seeds = [
+            b"txn_count".as_ref(),
+            &sender,
+        ],
+        bump
+    )]
+    pub txn_count: Box<Account<'info, Count>>,
+
+    #[account(
+        init, 
+        payer = payer,
+        space = 8 + 1,
+        seeds = [
+            b"txn_status".as_ref(),
+            &sender,
+            &current_count.to_be_bytes()
+        ],
+        bump
+    )]
+    pub txn_status: Box<Account<'info, TransactionStatus>>,
+    #[account(
+        seeds = [
+            source_account.key().as_ref(),
+        ],bump,
+    )]
+    /// CHECK: seeds has been checked
+    pub zebec_vault: AccountInfo<'info>,
+    #[account(
+        init_if_needed,
+        payer=source_account,
+        seeds = [
+            PREFIX_TOKEN.as_bytes(),
+            source_account.key().as_ref(),
+            mint.key().as_ref(),
+        ],bump,
+        space=8+8,
+    )]
+    pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
+    #[account(
+        mut,
+        seeds = [
+            &sender,
+            &from_chain_id.to_be_bytes()
+        ],
+        bump
+    )]
+    pub source_account: UncheckedAccount<'info>,
+    pub system_program: Program<'info, System>,
+    pub token_program:Program<'info,Token>,
+    pub associated_token_program:Program<'info,AssociatedToken>,
+    pub rent: Sysvar<'info, Rent>,
+    pub mint:Account<'info,Mint>,
+    #[account(
+        mut,
+        constraint= source_account_token_account.owner == source_account.key(),
+        constraint= source_account_token_account.mint == mint.key()
+    )]
+    pub source_account_token_account: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        associated_token::mint = mint,
+        associated_token::authority = zebec_vault,
+    )]
+    pub pda_account_token_account: Account<'info, TokenAccount>,
+    pub zebec_program: Program<'info, Zebec>
+
+}
+
+#[derive(Accounts)]
+#[instruction(
+    eth_add:[u8;32],
+    from_chain_id: u16,
+    current_count: u64
+)]
+pub struct XstreamWithdraw<'info> {
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(
+        init,
+        payer=payer,
+        space= 8 + 8,
+        seeds=[
+            &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            emitter_acc.chain_id.to_be_bytes().as_ref(),
+            (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
+        ],
+        bump,
+    )]
+    pub processed_vaa: Box<Account<'info, ProcessedVAA>>,
+    pub emitter_acc: Box<Account<'info, EmitterAddrAccount>>,
+    /// This requires some fancy hashing, so confirm it's derived address in the function itself.
+    #[account(
+        constraint = core_bridge_vaa.to_account_info().owner == &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
+    )]
+    /// CHECK: This account is owned by Core Bridge so we trust it
+    pub core_bridge_vaa: AccountInfo<'info>,
+
+    #[account(
+        init,
+        space = 8 + 156,
+        payer = payer,
+        seeds = [
+            b"data_store".as_ref(),
+            &eth_add, 
+            &current_count.to_be_bytes()
+        ],
+        bump,
+    )]
+    pub data_storage: Box<Account<'info, TransactionData>>,
+
+    #[account(
+        init_if_needed,
+        payer = payer, 
+        space = 8 + 8,
+        seeds = [
+            b"txn_count".as_ref(),
+            &eth_add,
+        ],
+        bump
+    )]
+    pub txn_count: Box<Account<'info, Count>>,
+
+    #[account(
+        init, 
+        payer = payer,
+        space = 8 + 1,
+        seeds = [
+            b"txn_status".as_ref(),
+            &eth_add,
+            &current_count.to_be_bytes()
+        ],
+        bump
+    )]
+    pub txn_status: Box<Account<'info, TransactionStatus>>,
+    ///CHECK: seeds are checked while creating transaction,
+    /// if different seeds passed the signature will not match
+    #[account(
+        mut,
+        seeds = [
+            &eth_add,
+            &from_chain_id.to_be_bytes()
+        ],
+        bump
+    )]
+    pub pda_signer: UncheckedAccount<'info>,
+    /// CHECK: seeds has been checked
+    pub zebec_vault: AccountInfo<'info>,
+    // #[account(mut)]
+    // pub dest_account: Signer<'info>,
+    #[account(mut)]
+    /// CHECK: validated in data_account constraint
+    pub source_account: AccountInfo<'info>,
+    /// CHECK: validated in fee_vault constraint
+    pub fee_owner:AccountInfo<'info>,
+    pub fee_vault_data: Box<Account<'info, FeeVaultData>>,
+    /// CHECK: seeds has been checked
+    pub fee_vault:AccountInfo<'info>,
+       #[account(mut,
+            constraint= data_account.sender==source_account.key(),
+            constraint= data_account.receiver==pda_signer.key(),    
+            constraint= data_account.fee_owner==fee_owner.key(), 
+            constraint= data_account.token_mint==mint.key(),          
+        )]
+    pub data_account:  Box<Account<'info, StreamToken>>,
+    pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
+    pub system_program: Program<'info, System>,
+    pub token_program:Program<'info,Token>,
+    pub associated_token_program:Program<'info,AssociatedToken>,
+    pub rent: Sysvar<'info, Rent>,
+    pub mint:Account<'info,Mint>,
+    #[account(
+        associated_token::mint = mint,
+        associated_token::authority = zebec_vault,
+    )]
+    pub pda_account_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(
+        init_if_needed,
+        payer = pda_signer,
+        associated_token::mint = mint,
+        associated_token::authority = pda_signer,
+    )]
+    pub dest_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(
+        init_if_needed,
+        payer = pda_signer,
+        associated_token::mint = mint,
+        associated_token::authority = fee_vault,
+    )]
+    pub fee_receiver_token_account: Box<Account<'info, TokenAccount>>,
+    pub zebec_program: Program<'info, Zebec>
+}
+
+#[derive(Accounts)]
+#[instruction(
+    sender:[u8;32],
+    from_chain_id: u16,
+    current_count: u64
+)]
+pub struct XstreamPause<'info> {
+    // ZEBEC's EOA.
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(
+        init,
+        payer=payer,
+        space= 8 + 8,
+        seeds=[
+            &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            emitter_acc.chain_id.to_be_bytes().as_ref(),
+            (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
+        ],
+        bump,
+    )]
+    pub processed_vaa: Box<Account<'info, ProcessedVAA>>,
+    pub emitter_acc: Box<Account<'info, EmitterAddrAccount>>,
+    /// This requires some fancy hashing, so confirm it's derived address in the function itself.
+    #[account(
+        constraint = core_bridge_vaa.to_account_info().owner == &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
+    )]
+    /// CHECK: This account is owned by Core Bridge so we trust it
+    pub core_bridge_vaa: AccountInfo<'info>,
+
+    #[account(
+        init,
+        space = 8 + 156,
+        payer = payer,
+        seeds = [
+            b"data_store".as_ref(),
+            &sender, 
+            &current_count.to_be_bytes()
+        ],
+        bump,
+    )]
+    pub data_storage: Box<Account<'info, TransactionData>>,
+
+    #[account(
+        init_if_needed,
+        payer = payer, 
+        space = 8 + 8,
+        seeds = [
+            b"txn_count".as_ref(),
+            &sender,
+        ],
+        bump
+    )]
+    pub txn_count: Box<Account<'info, Count>>,
+
+    #[account(
+        init, 
+        payer = payer,
+        space = 8 + 1,
+        seeds = [
+            b"txn_status".as_ref(),
+            &sender,
+            &current_count.to_be_bytes()
+        ],
+        bump
+    )]
+    pub txn_status: Box<Account<'info, TransactionStatus>>,
+    #[account(
+        mut,
+        seeds = [
+            &sender,
+            &from_chain_id.to_be_bytes()
+        ],
+        bump
+    )]
+    pub source_account: UncheckedAccount<'info>,
+    /// CHECK: validated in data_account constraint
+    pub dest_account: AccountInfo<'info>,
+    #[account(mut,
+        constraint = data_account.receiver == dest_account.key(),
+        constraint = data_account.sender == source_account.key(),
+        constraint= data_account.token_mint==mint.key(),
+    )]
+    pub data_account:  Account<'info, StreamToken>,
+    pub mint:Account<'info,Mint>,
+    #[account(
+        mut,
+        seeds = [
+            PREFIX_TOKEN.as_bytes(),
+            source_account.key().as_ref(),
+            mint.key().as_ref(),
+        ],bump,
+    )]
+    pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
+    pub system_program: Program<'info, System>,
+    pub zebec_program: Program<'info, Zebec>
+    
+}
+
+#[derive(Accounts)]
+#[instruction(
+    sender:[u8;32],
+    from_chain_id: u16,
+    current_count: u64
+)]
+pub struct XstreamCancel<'info> {
+    // ZEBEC's EOA.
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(
+        init,
+        payer=payer,
+        space= 8 + 8,
+        seeds=[
+            &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            emitter_acc.chain_id.to_be_bytes().as_ref(),
+            (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
+        ],
+        bump,
+    )]
+    pub processed_vaa: Box<Account<'info, ProcessedVAA>>,
+    pub emitter_acc: Box<Account<'info, EmitterAddrAccount>>,
+    /// This requires some fancy hashing, so confirm it's derived address in the function itself.
+    #[account(
+        constraint = core_bridge_vaa.to_account_info().owner == &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
+    )]
+    /// CHECK: This account is owned by Core Bridge so we trust it
+    pub core_bridge_vaa: AccountInfo<'info>,
+
+    #[account(
+        init,
+        space = 8 + 156,
+        payer = payer,
+        seeds = [
+            b"data_store".as_ref(),
+            &sender, 
+            &current_count.to_be_bytes()
+        ],
+        bump,
+    )]
+    pub data_storage: Box<Account<'info, TransactionData>>,
+
+    #[account(
+        init_if_needed,
+        payer = payer, 
+        space = 8 + 8,
+        seeds = [
+            b"txn_count".as_ref(),
+            &sender,
+        ],
+        bump
+    )]
+    pub txn_count: Box<Account<'info, Count>>,
+
+    #[account(
+        init, 
+        payer = payer,
+        space = 8 + 1,
+        seeds = [
+            b"txn_status".as_ref(),
+            &sender,
+            &current_count.to_be_bytes()
+        ],
+        bump
+    )]
+    pub txn_status: Box<Account<'info, TransactionStatus>>,
+    #[account(
+        seeds = [
+            source_account.key().as_ref(),
+        ],bump,
+    )]
+    /// CHECK: seeds has been checked
+    pub zebec_vault: AccountInfo<'info>,
+    #[account(mut)]
+    /// CHECK: validated in data_account constraint
+    pub dest_account: AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds = [
+            &sender,
+            &from_chain_id.to_be_bytes()
+        ],
+        bump
+    )]
+    pub source_account: UncheckedAccount<'info>,
+    /// CHECK: validated in fee_vault constraint
+    pub fee_owner:AccountInfo<'info>, 
+    #[account(
+        seeds = [
+            fee_owner.key().as_ref(),
+            OPERATEDATA.as_bytes(),
+            fee_vault.key().as_ref(),
+        ],bump
+    )]
+    pub fee_vault_data: Account<'info,FeeVaultData>, 
+    #[account(
+        constraint = fee_vault_data.fee_owner == fee_owner.key(),
+        constraint = fee_vault_data.fee_vault_address == fee_vault.key(),
+        seeds = [
+            fee_owner.key().as_ref(),
+            OPERATE.as_bytes(),          
+        ],bump,       
+    )]
+    /// CHECK: seeds has been checked
+    pub fee_vault:AccountInfo<'info>, 
+    #[account(mut,
+        constraint= data_account.sender==source_account.key(),
+        constraint= data_account.receiver==dest_account.key(),   
+        constraint= data_account.fee_owner==fee_owner.key(),   
+        close = source_account //to close the data account and send rent exempt lamports to sender       
+    )]
+    pub data_account:  Account<'info, StreamToken>,
+    #[account(
+        mut,
+        seeds = [
+            PREFIX_TOKEN.as_bytes(),
+            source_account.key().as_ref(),
+            mint.key().as_ref(),
+        ],bump,
+    )]
+    pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
+    pub system_program: Program<'info, System>,
+    pub token_program:Program<'info,Token>,
+    pub associated_token_program:Program<'info,AssociatedToken>,
+    pub rent: Sysvar<'info, Rent>,
+    pub mint:Account<'info,Mint>,
+    #[account(
+        init_if_needed,
+        payer = source_account,
+        associated_token::mint = mint,
+        associated_token::authority = zebec_vault,
+    )]
+    pub pda_account_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(
+        init_if_needed,
+        payer = source_account,
+        associated_token::mint = mint,
+        associated_token::authority = dest_account,
+    )]
+    pub dest_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(
+        init_if_needed,
+        payer = source_account,
+        associated_token::mint = mint,
+        associated_token::authority = fee_vault,
+    )]
+    pub fee_receiver_token_account: Box<Account<'info, TokenAccount>>,
+    pub zebec_program: Program<'info, Zebec>
+
+}
+
+#[derive(Accounts)]
+#[instruction(
+    sender:[u8;32],
+    from_chain_id: u16,
+    current_count: u64
+)]
+pub struct XstreamInstant<'info> {
+    // ZEBEC's EOA.
+    #[account(mut)]
+    pub payer: Signer<'info>,
+    #[account(
+        init,
+        payer=payer,
+        space= 8 + 8,
+        seeds=[
+            &decode(&emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            emitter_acc.chain_id.to_be_bytes().as_ref(),
+            (PostedMessageData::try_from_slice(&core_bridge_vaa.data.borrow())?.0).sequence.to_be_bytes().as_ref()
+        ],
+        bump,
+    )]
+    pub processed_vaa: Box<Account<'info, ProcessedVAA>>,
+    pub emitter_acc: Box<Account<'info, EmitterAddrAccount>>,
+    /// This requires some fancy hashing, so confirm it's derived address in the function itself.
+    #[account(
+        constraint = core_bridge_vaa.to_account_info().owner == &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap()
+    )]
+    /// CHECK: This account is owned by Core Bridge so we trust it
+    pub core_bridge_vaa: AccountInfo<'info>,
+
+    #[account(
+        init,
+        space = 8 + 156,
+        payer = payer,
+        seeds = [
+            b"data_store".as_ref(),
+            &sender, 
+            &current_count.to_be_bytes()
+        ],
+        bump,
+    )]
+    pub data_storage: Box<Account<'info, TransactionData>>,
+
+    #[account(
+        init_if_needed,
+        payer = payer, 
+        space = 8 + 8,
+        seeds = [
+            b"txn_count".as_ref(),
+            &sender,
+        ],
+        bump
+    )]
+    pub txn_count: Box<Account<'info, Count>>,
+
+    #[account(
+        init, 
+        payer = payer,
+        space = 8 + 1,
+        seeds = [
+            b"txn_status".as_ref(),
+            &sender,
+            &current_count.to_be_bytes()
+        ],
+        bump
+    )]
+    pub txn_status: Box<Account<'info, TransactionStatus>>,
+    #[account(
+        seeds = [
+            source_account.key().as_ref(),
+        ],bump,
+    )]
+    /// CHECK: seeds has been checked
+    pub zebec_vault: AccountInfo<'info>,
+    /// CHECK: This is the receiver account, since the funds are transferred directly, we do not need to check it
+    #[account(mut)]
+    pub dest_account: AccountInfo<'info>,
+    #[account(
+        mut,
+        seeds = [
+            &sender,
+            &from_chain_id.to_be_bytes()
+        ],
+        bump
+    )]
+    pub source_account: UncheckedAccount<'info>,
+    #[account(
+        init_if_needed,
+        payer=source_account,
+        seeds = [
+            PREFIX_TOKEN.as_bytes(),
+            source_account.key().as_ref(),
+            mint.key().as_ref(),
+        ],bump,
+        space=8+8,
+    )]
+    pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
+    pub system_program: Program<'info, System>,
+    pub token_program:Program<'info,Token>,
+    pub associated_token_program:Program<'info,AssociatedToken>,
+    pub rent: Sysvar<'info, Rent>,
+    pub mint:Account<'info,Mint>,
+    #[account(
+        mut,
+        associated_token::mint = mint,
+        associated_token::authority = zebec_vault,
+    )]
+    pub pda_account_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(
+        init_if_needed,
+        payer = source_account,
+        associated_token::mint = mint,
+        associated_token::authority = dest_account,
+    )]
+    pub dest_token_account: Box<Account<'info, TokenAccount>>,
+    pub zebec_program: Program<'info, Zebec>
 }
