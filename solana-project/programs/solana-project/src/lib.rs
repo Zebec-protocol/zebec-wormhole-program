@@ -1057,7 +1057,7 @@ pub mod solana_project {
         Ok(())
     }
 
-    pub fn stream_withdraw(
+    pub fn xstream_withdraw(
         ctx: Context<XstreamWithdraw>,
         sender: [u8; 32],
         from_chain_id: u16,
@@ -1106,8 +1106,7 @@ pub mod solana_project {
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
-        let payload_encode: &[u8] = &vaa.payload[1..];
-        let payload = XstreamWithdrawPayload::try_from_slice(payload_encode)?;
+        let payload = decode_xstream_withdraw(vaa.payload);
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
@@ -1181,7 +1180,7 @@ pub mod solana_project {
     }
 
     // Single Transaction methods starts from here
-    pub fn stream_start(
+    pub fn xstream_start(
         ctx: Context<XstreamStart>,
         sender: [u8; 32],
         from_chain_id: u16,
@@ -1232,10 +1231,13 @@ pub mod solana_project {
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
         msg!("payload decoding");
-        // let payload = decode_xstream(vaa.payload);
-        let payload = XstreamStartPayload::try_from_slice(&vaa.payload[1..])?;
+        let payload = decode_xstream(vaa.payload);
+        //let payload = XstreamStartPayload::try_from_slice(&vaa.payload[1..])?;
 
         msg!("payload amount {:?}:", payload.amount);
+        msg!("payload start_time {:?}:", payload.start_time);
+        msg!("payload start_time {:?}:", payload.end_time);
+        msg!("payload start_time {:?}:", payload.can_cancel);
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
@@ -1301,7 +1303,123 @@ pub mod solana_project {
         Ok(())
     }
 
-    pub fn deposit(
+    pub fn xstream_update(
+        ctx: Context<XstreamUpdate>,
+        sender: [u8; 32],
+        from_chain_id: u16,
+        current_count: u64,
+    ) -> Result<()> {
+        //Hash a VAA Extract and derive a VAA Key
+        let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
+        let serialized_vaa = serialize_vaa(&vaa);
+
+        let mut h = sha3::Keccak256::default();
+        h.write_all(serialized_vaa.as_slice()).unwrap();
+        let vaa_hash: [u8; 32] = h.finalize().into();
+
+        let vaa_key = Pubkey::find_program_address(
+            &[b"PostedVAA", &vaa_hash],
+            &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
+        )
+        .0;
+
+        require!(
+            ctx.accounts.core_bridge_vaa.key() == vaa_key,
+            MessengerError::VAAKeyMismatch
+        );
+
+        // Already checked that the SignedVaa is owned by core bridge in account constraint logic
+        // Check that the emitter chain and address match up with the vaa
+        require!(
+            vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
+                && vaa.emitter_address
+                    == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            MessengerError::VAAEmitterMismatch
+        );
+
+        // Change Transaction Count to Current Count
+        let txn_count = &mut ctx.accounts.txn_count;
+        let sum = txn_count.count.checked_add(1);
+
+        match sum {
+            None => return Err(MessengerError::Overflow.into()),
+            Some(val) => txn_count.count = val,
+        }
+        require!(
+            txn_count.count == current_count,
+            MessengerError::InvalidCount
+        );
+
+        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
+
+        let payload = decode_xstream_update(vaa.payload);
+
+        //check Mint passed
+        let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
+        require!(
+            mint_pubkey_passed == Pubkey::new(&payload.token_mint),
+            MessengerError::MintKeyMismatch
+        );
+
+        //check data account
+        let data_account_passed: Pubkey = ctx.accounts.data_account.key();
+        require!(
+            data_account_passed == Pubkey::new(&payload.data_account),
+            MessengerError::DataAccountMismatch
+        );
+
+        //check sender
+        let pda_sender_passed: Pubkey = ctx.accounts.source_account.key();
+        let sender_stored = payload.sender;
+
+        //check receiver
+        let pda_receiver_passed: Pubkey = ctx.accounts.dest_account.key();
+        let receiver_stored = payload.receiver;
+        require!(
+            sender == receiver_stored,
+            MessengerError::PdaReceiverMismatch
+        );
+
+        //check pdaSender
+        let chain_id_stored = from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
+        let sender_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&sender_stored, &chain_id_seed], ctx.program_id);
+        require!(
+            pda_sender_passed == sender_derived_pubkey.0,
+            MessengerError::SenderDerivedKeyMismatch
+        );
+
+        //check pdaReceiver
+        let receiver_derived_pubkey: (Pubkey, u8) =
+            Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
+        require!(
+            pda_receiver_passed == receiver_derived_pubkey.0,
+            MessengerError::ReceiverDerivedKeyMismatch
+        );
+
+        let zebec_program = ctx.accounts.zebec_program.to_account_info();
+        let zebec_accounts = zebec::cpi::accounts::TokenStreamUpdate {
+            dest_account: ctx.accounts.dest_account.to_account_info(),
+            source_account: ctx.accounts.source_account.to_account_info(),
+            data_account: ctx.accounts.data_account.to_account_info(),
+            withdraw_data: ctx.accounts.withdraw_data.to_account_info(),
+            mint: ctx.accounts.mint.to_account_info(),
+        };
+        let bump = ctx.bumps.get("source_account").unwrap().to_le_bytes();
+        let seeds: &[&[_]] = &[&sender, &from_chain_id.to_be_bytes(), bump.as_ref()];
+        let signer_seeds = &[&seeds[..]];
+        let cpi_ctx = CpiContext::new_with_signer(zebec_program, zebec_accounts, signer_seeds);
+        zebec::cpi::token_stream_update(
+            cpi_ctx,
+            payload.start_time,
+            payload.end_time,
+            payload.amount,
+        )?;
+        Ok(())
+    }
+
+    pub fn xstream_deposit(
         ctx: Context<XstreamDeposit>,
         sender: [u8; 32],
         from_chain_id: u16,
@@ -1350,8 +1468,7 @@ pub mod solana_project {
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
-        let payload_encode: &[u8] = &vaa.payload;
-        let payload = XstreamDepositPayload::try_from_slice(payload_encode)?;
+        let payload = decode_xstream_deposit(vaa.payload);
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = Pubkey::new(&payload.token_mint);
@@ -1398,7 +1515,7 @@ pub mod solana_project {
         Ok(())
     }
 
-    pub fn sender_withdraw(
+    pub fn xstream_sender_withdraw(
         ctx: Context<XstreamSenderWithdraw>,
         sender: [u8; 32],
         from_chain_id: u16,
@@ -1447,8 +1564,7 @@ pub mod solana_project {
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
-        let payload_encode: &[u8] = &vaa.payload[1..];
-        let payload = XstreamWithdrawDepositPayload::try_from_slice(payload_encode)?;
+        let payload = decode_deposit_withdraw(vaa.payload);
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
@@ -1496,7 +1612,7 @@ pub mod solana_project {
         Ok(())
     }
 
-    pub fn stream_pause(
+    pub fn xstream_pause(
         ctx: Context<XstreamPause>,
         sender: [u8; 32],
         from_chain_id: u16,
@@ -1545,8 +1661,7 @@ pub mod solana_project {
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
-        let payload_encode: &[u8] = &vaa.payload[1..];
-        let payload = XstreamPausePayload::try_from_slice(payload_encode)?;
+        let payload = decode_xstream_pause(vaa.payload);
 
         //check data account
         let data_account_passed: Pubkey = ctx.accounts.data_account.key();
@@ -1599,7 +1714,7 @@ pub mod solana_project {
         Ok(())
     }
 
-    pub fn stream_cancel(
+    pub fn xstream_cancel(
         ctx: Context<XstreamCancel>,
         sender: [u8; 32],
         from_chain_id: u16,
@@ -1648,8 +1763,7 @@ pub mod solana_project {
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
-        let payload_encode: &[u8] = &vaa.payload[1..];
-        let payload = XstreamCancelPayload::try_from_slice(payload_encode)?;
+        let payload = decode_xstream_cancel(vaa.payload);
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
@@ -1770,8 +1884,7 @@ pub mod solana_project {
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
-        let payload_encode: &[u8] = &vaa.payload[1..];
-        let payload = XstreamInstantTransferPayload::try_from_slice(payload_encode)?;
+        let payload = decode_xstream_instant(vaa.payload);
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
@@ -2406,19 +2519,123 @@ fn decode_xstream(encoded_str: Vec<u8>) -> XstreamStartPayload {
     stream_payload
 }
 
-// fn decode_xatream_withdraw(encoded_str: Vec<u8>) -> XstreamWithdrawPayload {
-//     let to_chain_id = get_u32_array(encoded_str[1..33].to_vec());
-//     let withdrawer = get_u32_array(encoded_str[33..65].to_vec());
-//     let token_mint = get_u32_array(&encoded_str[65..97].to_vec());
-//     let depositor = get_u32_array(encoded_str[97..129].to_vec());
-//     let data_account = get_u32_array(&encoded_str[129..161].to_vec());
+fn decode_xstream_withdraw(encoded_str: Vec<u8>) -> XstreamWithdrawPayload {
+    let to_chain_id = get_u32_array(encoded_str[1..33].to_vec());
+    let withdrawer = get_u32_array(encoded_str[33..65].to_vec());
+    let token_mint = get_u32_array(encoded_str[65..97].to_vec());
+    let depositor = get_u32_array(encoded_str[97..129].to_vec());
+    let data_account = get_u32_array(encoded_str[129..161].to_vec());
 
-//     let payload = XstreamWithdrawPayload {
-//         to_chain_id,
-//         withdrawer,
-//         token_mint,
-//         depositor,
-//         data_account,
-//     };
-//     payload
-// }
+    let payload = XstreamWithdrawPayload {
+        to_chain_id,
+        withdrawer,
+        token_mint,
+        depositor,
+        data_account,
+    };
+    payload
+}
+
+fn decode_xstream_deposit(encoded_str: Vec<u8>) -> XstreamDepositPayload {
+    let amount = get_u64(encoded_str[1..9].to_vec());
+    let to_chain_id = get_u32_array(encoded_str[9..41].to_vec());
+    let sender = get_u32_array(encoded_str[41..73].to_vec());
+    let token_mint = get_u32_array(encoded_str[73..105].to_vec());
+
+    let payload = XstreamDepositPayload {
+        amount,
+        to_chain_id,
+        sender,
+        token_mint,
+    };
+    payload
+}
+
+fn decode_xstream_update(encoded_str: Vec<u8>) -> XstreamUpdatePayload {
+    let start_time = get_u64(encoded_str[1..9].to_vec());
+    let end_time = get_u64(encoded_str[9..17].to_vec());
+    let amount = get_u64(encoded_str[17..25].to_vec());
+    let to_chain_id = get_u32_array(encoded_str[25..57].to_vec());
+    let sender = get_u32_array(encoded_str[57..89].to_vec());
+    let receiver = get_u32_array(encoded_str[89..121].to_vec());
+    let token_mint = get_u32_array(encoded_str[121..153].to_vec());
+    let data_account = get_u32_array(encoded_str[153..185].to_vec());
+
+    let payload = XstreamUpdatePayload {
+        start_time,
+        end_time,
+        amount,
+        to_chain_id,
+        sender,
+        receiver,
+        token_mint,
+        data_account,
+    };
+    payload
+}
+
+fn decode_xstream_pause(encoded_str: Vec<u8>) -> XstreamPausePayload {
+    let to_chain_id = get_u32_array(encoded_str[1..33].to_vec());
+    let depositor = get_u32_array(encoded_str[33..65].to_vec());
+    let token_mint = get_u32_array(encoded_str[65..97].to_vec());
+    let receiver = get_u32_array(encoded_str[97..129].to_vec());
+    let data_account = get_u32_array(encoded_str[129..161].to_vec());
+
+    let payload = XstreamPausePayload {
+        to_chain_id,
+        depositor,
+        token_mint,
+        receiver,
+        data_account,
+    };
+    payload
+}
+
+fn decode_xstream_cancel(encoded_str: Vec<u8>) -> XstreamCancelPayload {
+    let to_chain_id = get_u32_array(encoded_str[1..33].to_vec());
+    let depositor = get_u32_array(encoded_str[33..65].to_vec());
+    let token_mint = get_u32_array(encoded_str[65..97].to_vec());
+    let receiver = get_u32_array(encoded_str[97..129].to_vec());
+    let data_account = get_u32_array(encoded_str[129..161].to_vec());
+
+    let payload = XstreamCancelPayload {
+        to_chain_id,
+        depositor,
+        token_mint,
+        receiver,
+        data_account,
+    };
+    payload
+}
+
+fn decode_deposit_withdraw(encoded_str: Vec<u8>) -> XstreamWithdrawDepositPayload {
+    let amount = get_u64(encoded_str[1..9].to_vec());
+    let to_chain_id = get_u32_array(encoded_str[9..41].to_vec());
+    let withdrawer = get_u32_array(encoded_str[41..73].to_vec());
+    let token_mint = get_u32_array(encoded_str[73..105].to_vec());
+
+    let payload = XstreamWithdrawDepositPayload {
+        amount,
+        to_chain_id,
+        withdrawer,
+        token_mint,
+    };
+    payload
+}
+
+fn decode_xstream_instant(encoded_str: Vec<u8>) -> XstreamInstantTransferPayload {
+    let amount = get_u64(encoded_str[1..9].to_vec());
+    let to_chain_id = get_u32_array(encoded_str[9..41].to_vec());
+    let sender = get_u32_array(encoded_str[41..73].to_vec());
+    let token_mint = get_u32_array(encoded_str[73..105].to_vec());
+    let receiver = get_u32_array(encoded_str[105..137].to_vec());
+
+    let payload = XstreamInstantTransferPayload {
+        amount,
+        to_chain_id,
+        sender,
+        token_mint,
+        receiver,
+    };
+    payload
+}

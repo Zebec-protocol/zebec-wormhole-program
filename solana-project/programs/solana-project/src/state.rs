@@ -38,8 +38,8 @@ pub struct Transaction {
 #[account]
 // TODO: can_update and cancel are bools
 pub struct TransactionData {
-    pub sender: [u8;32],
-    pub receiver: [u8;32],
+    pub sender: [u8; 32],
+    pub receiver: [u8; 32],
     pub data_account: Pubkey,
     pub from_chain_id: u16,
     pub token_mint: Pubkey,

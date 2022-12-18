@@ -737,6 +737,7 @@ pub struct XstreamStart<'info> {
     pub txn_status: Box<Account<'info, TransactionStatus>>,
     #[account(zero)]
     pub data_account:  Account<'info, StreamToken>,
+    #[account(mut)]
     pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
     /// CHECK: validated in fee_vault constraint
     pub fee_owner:AccountInfo<'info>,
@@ -894,6 +895,7 @@ pub struct XstreamDeposit<'info> {
         bump
     )]
     pub txn_status: Box<Account<'info, TransactionStatus>>,
+    #[account(mut)]
     /// CHECK: This will be validated on zebec contract
     pub zebec_vault: AccountInfo<'info>,
     #[account(
@@ -911,7 +913,9 @@ pub struct XstreamDeposit<'info> {
     pub associated_token_program:Program<'info,AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
     pub mint:Account<'info,Mint>,
+    #[account(mut)]
     pub source_account_token_account: Account<'info, TokenAccount>,
+    #[account(mut)]
     pub pda_account_token_account: Account<'info, TokenAccount>,
     pub zebec_program: Program<'info, Zebec>
 
@@ -973,6 +977,7 @@ pub struct XstreamSenderWithdraw<'info> {
     pub txn_status: Box<Account<'info, TransactionStatus>>,
     /// CHECK: This will be validated on zebec contract
     pub zebec_vault: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: This will be validated on zebec contrac
     pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
     #[account(
@@ -990,7 +995,9 @@ pub struct XstreamSenderWithdraw<'info> {
     pub associated_token_program:Program<'info,AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
     pub mint:Account<'info,Mint>,
+    #[account(mut)]
     pub source_account_token_account: Account<'info, TokenAccount>,
+    #[account(mut)]
     pub pda_account_token_account: Account<'info, TokenAccount>,
     pub zebec_program: Program<'info, Zebec>
 
@@ -1072,8 +1079,10 @@ pub struct XstreamWithdraw<'info> {
     pub fee_vault_data: Box<Account<'info, FeeVaultData>>,
     /// CHECK: This will be validated on zebec contract
     pub fee_vault:AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: This will be validated on zebec contract
     pub data_account:  Box<Account<'info, StreamToken>>,
+    #[account(mut)]
     /// CHECK: This will be validated on zebec contract
     pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
     pub system_program: Program<'info, System>,
@@ -1081,8 +1090,11 @@ pub struct XstreamWithdraw<'info> {
     pub associated_token_program:Program<'info,AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
     pub mint:Account<'info,Mint>,
+    #[account(mut)]
     pub pda_account_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(mut)]
     pub dest_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(mut)]
     pub fee_receiver_token_account: Box<Account<'info, TokenAccount>>,
     pub zebec_program: Program<'info, Zebec>
 }
@@ -1151,11 +1163,13 @@ pub struct XstreamPause<'info> {
     )]
     /// CHECK: seeds has been checked
     pub source_account: UncheckedAccount<'info>,
+    #[account(mut)]
     /// CHECK: validated in data_account constraint
     pub dest_account: AccountInfo<'info>,
     /// CHECK: This will be validated on zebec contract
     pub data_account:  Account<'info, StreamToken>,
     pub mint:Account<'info,Mint>,
+    #[account(mut)]
     /// CHECK: This will be validated on zebec contract
     pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
     pub system_program: Program<'info, System>,
@@ -1217,11 +1231,7 @@ pub struct XstreamCancel<'info> {
         bump
     )]
     pub txn_status: Box<Account<'info, TransactionStatus>>,
-    #[account(
-        seeds = [
-            source_account.key().as_ref(),
-        ],bump,
-    )]
+    #[account(mut)]
     /// CHECK: seeds has been checked
     pub zebec_vault: AccountInfo<'info>,
     #[account(mut)]
@@ -1243,8 +1253,10 @@ pub struct XstreamCancel<'info> {
     pub fee_vault_data: Account<'info,FeeVaultData>, 
     /// CHECK: seeds has been checked
     pub fee_vault:AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: This will be validated on zebec contract
     pub data_account:  Account<'info, StreamToken>,
+    #[account(mut)]
     /// CHECK: This will be validated on zebec contract
     pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
     pub system_program: Program<'info, System>,
@@ -1252,8 +1264,11 @@ pub struct XstreamCancel<'info> {
     pub associated_token_program:Program<'info,AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
     pub mint:Account<'info,Mint>,
+    #[account(mut)]
     pub pda_account_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(mut)]
     pub dest_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(mut)]
     pub fee_receiver_token_account: Box<Account<'info, TokenAccount>>,
     pub zebec_program: Program<'info, Zebec>
 
@@ -1328,6 +1343,7 @@ pub struct XstreamInstant<'info> {
     )]
     /// CHECK: seeds has been checked
     pub source_account: UncheckedAccount<'info>,
+    #[account(mut)]
     /// CHECK: This will be validated on zebec contract
     pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
     pub system_program: Program<'info, System>,
@@ -1335,7 +1351,9 @@ pub struct XstreamInstant<'info> {
     pub associated_token_program:Program<'info,AssociatedToken>,
     pub rent: Sysvar<'info, Rent>,
     pub mint:Account<'info,Mint>,
+    #[account(mut)]
     pub pda_account_token_account: Box<Account<'info, TokenAccount>>,
+    #[account(mut)]
     pub dest_token_account: Box<Account<'info, TokenAccount>>,
     pub zebec_program: Program<'info, Zebec>
 }
