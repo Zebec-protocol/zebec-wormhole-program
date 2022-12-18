@@ -1106,7 +1106,7 @@ pub mod solana_project {
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
-        let payload_encode: &[u8] = &vaa.payload;
+        let payload_encode: &[u8] = &vaa.payload[1..];
         let payload = XstreamWithdrawPayload::try_from_slice(payload_encode)?;
 
         //check Mint passed
@@ -1136,7 +1136,7 @@ pub mod solana_project {
         );
 
         //check pdaSender
-        let chain_id_stored = payload.to_chain_id;
+        let chain_id_stored = from_chain_id;
         let chain_id_seed = chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender_stored, &chain_id_seed], ctx.program_id);
@@ -1172,7 +1172,7 @@ pub mod solana_project {
             dest_token_account: ctx.accounts.dest_token_account.to_account_info(),
             fee_receiver_token_account: ctx.accounts.fee_receiver_token_account.to_account_info(),
         };
-        let bump = ctx.bumps.get("pda_signer").unwrap().to_le_bytes();
+        let bump = ctx.bumps.get("dest_account").unwrap().to_le_bytes();
         let seeds: &[&[_]] = &[&sender, &from_chain_id.to_be_bytes(), bump.as_ref()];
         let signer_seeds = &[&seeds[..]];
         let cpi_ctx = CpiContext::new_with_signer(zebec_program, zebec_accounts, signer_seeds);
@@ -1187,6 +1187,7 @@ pub mod solana_project {
         from_chain_id: u16,
         current_count: u64,
     ) -> Result<()> {
+        msg!("xstream start");
         //Hash a VAA Extract and derive a VAA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
         let serialized_vaa = serialize_vaa(&vaa);
@@ -1230,8 +1231,11 @@ pub mod solana_project {
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
-        let payload_encode: &[u8] = &vaa.payload;
-        let payload = XstreamStartPayload::try_from_slice(payload_encode)?;
+        msg!("payload decoding");
+        // let payload = decode_xstream(vaa.payload);
+        let payload = XstreamStartPayload::try_from_slice(&vaa.payload[1..])?;
+
+        msg!("payload amount {:?}:", payload.amount);
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
@@ -1250,17 +1254,16 @@ pub mod solana_project {
         let receiver_stored = payload.receiver;
 
         //check pdaSender
-        let chain_id_stored = payload.to_chain_id;
-        let chain_id_seed = &chain_id_stored.to_be_bytes();
+        let chain_id_stored: u16 = from_chain_id;
+        let chain_id_seed = chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
-            Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
+            Pubkey::find_program_address(&[&sender, &chain_id_seed], ctx.program_id);
         require!(
             pda_sender_passed == sender_derived_pubkey.0,
             MessengerError::SenderDerivedKeyMismatch
         );
 
-        //check pdaReceiver
-        let chain_id_stored = payload.to_chain_id;
+        //check pdaReceivers
         let chain_id_seed = chain_id_stored.to_be_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
@@ -1363,7 +1366,7 @@ pub mod solana_project {
         require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check pdaSender
-        let chain_id_stored = payload.to_chain_id;
+        let chain_id_stored = from_chain_id;
         let chain_id_seed = &chain_id_stored.to_be_bytes();
         let derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
@@ -1444,7 +1447,7 @@ pub mod solana_project {
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
-        let payload_encode: &[u8] = &vaa.payload;
+        let payload_encode: &[u8] = &vaa.payload[1..];
         let payload = XstreamWithdrawDepositPayload::try_from_slice(payload_encode)?;
 
         //check Mint passed
@@ -1460,7 +1463,7 @@ pub mod solana_project {
         require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check pdaSender
-        let chain_id_stored = payload.to_chain_id;
+        let chain_id_stored = from_chain_id;
         let chain_id_seed = &chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
@@ -1542,7 +1545,7 @@ pub mod solana_project {
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
-        let payload_encode: &[u8] = &vaa.payload;
+        let payload_encode: &[u8] = &vaa.payload[1..];
         let payload = XstreamPausePayload::try_from_slice(payload_encode)?;
 
         //check data account
@@ -1562,7 +1565,7 @@ pub mod solana_project {
         let receiver_stored = payload.receiver;
 
         //check pdaSender
-        let chain_id_stored = payload.to_chain_id;
+        let chain_id_stored = from_chain_id;
         let chain_id_seed = &chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
@@ -1572,7 +1575,6 @@ pub mod solana_project {
         );
 
         //check pdaReceiver
-        let chain_id_stored = payload.to_chain_id;
         let chain_id_seed = chain_id_stored.to_be_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
@@ -1646,7 +1648,7 @@ pub mod solana_project {
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
-        let payload_encode: &[u8] = &vaa.payload;
+        let payload_encode: &[u8] = &vaa.payload[1..];
         let payload = XstreamCancelPayload::try_from_slice(payload_encode)?;
 
         //check Mint passed
@@ -1673,7 +1675,7 @@ pub mod solana_project {
         let receiver_stored = payload.receiver;
 
         //check pdaSender
-        let chain_id_stored = payload.to_chain_id;
+        let chain_id_stored = from_chain_id;
         let chain_id_seed = &chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
@@ -1683,7 +1685,7 @@ pub mod solana_project {
         );
 
         //check pdaReceiver
-        let chain_id_stored = payload.to_chain_id;
+        let chain_id_stored = from_chain_id;
         let chain_id_seed = chain_id_stored.to_be_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
@@ -1768,7 +1770,7 @@ pub mod solana_project {
 
         ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
-        let payload_encode: &[u8] = &vaa.payload;
+        let payload_encode: &[u8] = &vaa.payload[1..];
         let payload = XstreamInstantTransferPayload::try_from_slice(payload_encode)?;
 
         //check Mint passed
@@ -1788,7 +1790,7 @@ pub mod solana_project {
         let receiver_stored = payload.receiver;
 
         //check pdaSender
-        let chain_id_stored = payload.to_chain_id;
+        let chain_id_stored = from_chain_id;
         let chain_id_seed = &chain_id_stored.to_be_bytes();
         let sender_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
@@ -1798,7 +1800,7 @@ pub mod solana_project {
         );
 
         //check pdaReceiver
-        let chain_id_stored = payload.to_chain_id;
+        let chain_id_stored = from_chain_id;
         let chain_id_seed = chain_id_stored.to_be_bytes();
         let receiver_derived_pubkey: (Pubkey, u8) =
             Pubkey::find_program_address(&[&receiver_stored, &chain_id_seed], ctx.program_id);
@@ -2378,3 +2380,45 @@ fn perform_cpi(
 
     solana_program::program::invoke_signed(&ix, accounts, signer)
 }
+
+fn decode_xstream(encoded_str: Vec<u8>) -> XstreamStartPayload {
+    let start_time = get_u64(encoded_str[1..9].to_vec());
+    let end_time = get_u64(encoded_str[9..17].to_vec());
+    let amount = get_u64(encoded_str[17..25].to_vec());
+    let to_chain_id = get_u32_array(encoded_str[25..57].to_vec());
+    let sender = get_u32_array(encoded_str[57..89].to_vec());
+    let receiver = get_u32_array(encoded_str[89..121].to_vec());
+    let can_update = get_u64(encoded_str[121..129].to_vec());
+    let can_cancel = get_u64(encoded_str[129..137].to_vec());
+    let token_mint = get_u32_array(encoded_str[137..169].to_vec());
+
+    let stream_payload = XstreamStartPayload {
+        start_time,
+        end_time,
+        amount,
+        to_chain_id,
+        sender,
+        receiver,
+        can_update,
+        can_cancel,
+        token_mint,
+    };
+    stream_payload
+}
+
+// fn decode_xatream_withdraw(encoded_str: Vec<u8>) -> XstreamWithdrawPayload {
+//     let to_chain_id = get_u32_array(encoded_str[1..33].to_vec());
+//     let withdrawer = get_u32_array(encoded_str[33..65].to_vec());
+//     let token_mint = get_u32_array(&encoded_str[65..97].to_vec());
+//     let depositor = get_u32_array(encoded_str[97..129].to_vec());
+//     let data_account = get_u32_array(&encoded_str[129..161].to_vec());
+
+//     let payload = XstreamWithdrawPayload {
+//         to_chain_id,
+//         withdrawer,
+//         token_mint,
+//         depositor,
+//         data_account,
+//     };
+//     payload
+// }
