@@ -819,8 +819,10 @@ pub struct XstreamUpdate<'info> {
         bump
     )]
     pub txn_status: Box<Account<'info, TransactionStatus>>,
+    #[account(mut)]
     /// CHECK: This will be validated on zebec contract
     pub data_account:  Account<'info, StreamToken>,
+    #[account(mut)]
     /// CHECK: This will be validated on zebec contract
     pub withdraw_data: Box<Account<'info, TokenWithdraw>>,
     #[account(
@@ -1163,9 +1165,9 @@ pub struct XstreamPause<'info> {
     )]
     /// CHECK: seeds has been checked
     pub source_account: UncheckedAccount<'info>,
-    #[account(mut)]
     /// CHECK: validated in data_account constraint
     pub dest_account: AccountInfo<'info>,
+    #[account(mut)]
     /// CHECK: This will be validated on zebec contract
     pub data_account:  Account<'info, StreamToken>,
     pub mint:Account<'info,Mint>,

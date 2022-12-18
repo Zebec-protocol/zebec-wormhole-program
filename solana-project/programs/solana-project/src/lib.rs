@@ -1375,10 +1375,7 @@ pub mod solana_project {
         //check receiver
         let pda_receiver_passed: Pubkey = ctx.accounts.dest_account.key();
         let receiver_stored = payload.receiver;
-        require!(
-            sender == receiver_stored,
-            MessengerError::PdaReceiverMismatch
-        );
+        require!(sender == sender_stored, MessengerError::PdaReceiverMismatch);
 
         //check pdaSender
         let chain_id_stored = from_chain_id;
