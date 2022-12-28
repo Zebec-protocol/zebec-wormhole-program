@@ -3,14 +3,10 @@ use anchor_lang::system_program::{transfer as transfer_sol, Transfer as Transfer
 
 use anchor_lang::solana_program::instruction::Instruction;
 
-use anchor_lang::solana_program;
-
 use anchor_spl::token::{approve, Approve};
 
 use primitive_types::U256;
 use sha3::Digest;
-
-use std::collections::BTreeMap;
 
 use byteorder::{BigEndian, WriteBytesExt};
 use hex::decode;
@@ -31,10 +27,7 @@ use errors::*;
 use events::*;
 use payload::*;
 use portal::*;
-use state::*;
 use wormhole::*;
-
-use std::ops::Deref;
 
 use anchor_lang::solana_program::program::invoke_signed;
 
@@ -219,8 +212,15 @@ pub mod solana_project {
         Ok(())
     }
 
-    pub fn store_msg(ctx: Context<StoreMsg>, current_count: u64, sender: [u8; 32]) -> Result<()> {
-        //Hash a VAA Extract and derive a VAA Key
+    //create and execute direct transfer native
+    pub fn xstream_direct_transfer_native(
+        ctx: Context<XstreamDirectTransferNative>,
+        sender: [u8; 32],
+        chain_id: u16,
+        target_chain: u16,
+        fee: u64,
+    ) -> Result<()> {
+        //Hash a VAA Extracts and derive a VAA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
         let serialized_vaa = serialize_vaa(&vaa);
 
@@ -248,79 +248,17 @@ pub mod solana_project {
             MessengerError::VAAEmitterMismatch
         );
 
-        // Encoded String
-        let encoded_str = vaa.payload.clone();
-
-        // Decode Encoded String and Store Value based upon the code sent on message passing
-        let code = get_u8(encoded_str[0..1].to_vec());
-
-        // Change Transaction Count to Current Count
-        let txn_count = &mut ctx.accounts.txn_count;
-        let sum = txn_count.count.checked_add(1);
-
-        match sum {
-            None => return Err(MessengerError::Overflow.into()),
-            Some(val) => txn_count.count = val,
-        }
-        require!(
-            txn_count.count == current_count,
-            MessengerError::InvalidCount
-        );
-
-        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
-        let txn_data = &mut ctx.accounts.data_storage;
-
-        emit!(StoredMsg {
-            msg_type: code,
-            sender: sender,
-            count: current_count
-        });
-
-        // Switch Based on the code
-        match code {
-            2 => process_stream(encoded_str, vaa.emitter_chain, txn_data, sender),
-            4 => process_withdraw_stream(encoded_str, vaa.emitter_chain, txn_data, sender),
-            6 => process_deposit(encoded_str, vaa.emitter_chain, txn_data, sender),
-            8 => process_pause(encoded_str, vaa.emitter_chain, txn_data, sender),
-            10 => process_withdraw(encoded_str, vaa.emitter_chain, txn_data, sender),
-            12 => process_instant_transfer(encoded_str, vaa.emitter_chain, txn_data, sender),
-            14 => process_update_stream(encoded_str, vaa.emitter_chain, txn_data, sender),
-            16 => process_cancel_stream(encoded_str, vaa.emitter_chain, txn_data, sender),
-            17 => process_direct_transfer(encoded_str, vaa.emitter_chain, txn_data, sender),
-            _ => Err(MessengerError::InvalidPayload.into()),
-        }
-    }
-
-    //create and execute direct transfer native
-    pub fn transaction_direct_transfer_native(
-        ctx: Context<DirectTransferNative>,
-        sender: [u8; 32],
-        chain_id: u16,
-        current_count: u64,
-        target_chain: u16,
-        fee: u64,
-    ) -> Result<()> {
-        require!(
-            !ctx.accounts.txn_status.executed,
-            MessengerError::TransactionAlreadyExecuted
-        );
-        let transaction_status = &mut ctx.accounts.txn_status;
-        transaction_status.executed = true;
-
-        require!(
-            ctx.accounts.data_storage.token_mint == ctx.accounts.mint.key(),
-            MessengerError::DataAccountMismatch
-        );
+        let payload = decode_xstream_direct(vaa.payload);
 
         //check sender
-        let sender_stored = ctx.accounts.data_storage.sender;
+        let sender_stored = payload.sender;
         require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
-        let receiver_stored = ctx.accounts.data_storage.receiver;
+        let receiver_stored = payload.receiver;
 
         //check pdaSender
-        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
+        let chain_id_stored = chain_id;
         let chain_id_seed = &chain_id_stored.to_be_bytes();
         let (sender_derived_pubkey, _): (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
@@ -334,40 +272,67 @@ pub mod solana_project {
             sender_chain: chain_id,
             target_chain: target_chain,
             receiver: receiver_stored,
-            current_count: current_count
         });
 
-        transfer_native(ctx, sender, chain_id, target_chain, fee, receiver_stored)
+        transfer_native(
+            ctx,
+            sender,
+            payload.amount,
+            chain_id,
+            target_chain,
+            fee,
+            receiver_stored,
+        )
     }
 
     //create and execute direct transfer wrapped
-    pub fn transaction_direct_transfer_wrapped(
-        ctx: Context<DirectTransferWrapped>,
+    pub fn xstream_direct_transfer_wrapped(
+        ctx: Context<XstreamDirectTransferWrapped>,
         sender: [u8; 32],
         sender_chain: u16,
         _token_address: Vec<u8>,
         _token_chain: u16,
-        current_count: u64,
         target_chain: u16,
         fee: u64,
     ) -> Result<()> {
-        require!(
-            !ctx.accounts.txn_status.executed,
-            MessengerError::TransactionAlreadyExecuted
-        );
-        let transaction_status = &mut ctx.accounts.txn_status;
-        transaction_status.executed = true;
+        //Hash a VAA Extracts and derive a VAA Key
+        let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
+        let serialized_vaa = serialize_vaa(&vaa);
 
+        let mut h = sha3::Keccak256::default();
+        h.write_all(serialized_vaa.as_slice()).unwrap();
+        let vaa_hash: [u8; 32] = h.finalize().into();
+
+        let vaa_key = Pubkey::find_program_address(
+            &[b"PostedVAA", &vaa_hash],
+            &Pubkey::from_str(CORE_BRIDGE_ADDRESS).unwrap(),
+        )
+        .0;
+
+        require!(
+            ctx.accounts.core_bridge_vaa.key() == vaa_key,
+            MessengerError::VAAKeyMismatch
+        );
+
+        // Already checked that the SignedVaa is owned by core bridge in account constraint logic
+        // Check that the emitter chain and address match up with the vaa
+        require!(
+            vaa.emitter_chain == ctx.accounts.emitter_acc.chain_id
+                && vaa.emitter_address
+                    == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
+            MessengerError::VAAEmitterMismatch
+        );
+
+        let payload = decode_xstream_direct(vaa.payload);
         //check sender
-        let sender_stored = ctx.accounts.data_storage.sender;
+        let sender_stored = payload.sender;
         require!(sender == sender_stored, MessengerError::PdaSenderMismatch);
 
         //check receiver
-        let receiver_stored = ctx.accounts.data_storage.receiver;
+        let receiver_stored = payload.receiver;
 
         //check pdaSender
-        let chain_id_stored = ctx.accounts.data_storage.from_chain_id;
-        let chain_id_seed = &chain_id_stored.to_be_bytes();
+        let chain_id_seed = &sender_chain.to_be_bytes();
         let (sender_derived_pubkey, _): (Pubkey, u8) =
             Pubkey::find_program_address(&[&sender, chain_id_seed], ctx.program_id);
         require!(
@@ -380,12 +345,12 @@ pub mod solana_project {
             sender_chain: sender_chain,
             target_chain: target_chain,
             receiver: receiver_stored,
-            current_count: current_count,
         });
 
         transfer_wrapped(
             ctx,
             sender,
+            payload.amount,
             sender_chain,
             target_chain,
             fee,
@@ -393,55 +358,10 @@ pub mod solana_project {
         )
     }
 
-    pub fn execute_transaction(
-        ctx: Context<ExecuteTransaction>,
-        eth_add: [u8; 32],
-
-        from_chain_id: u16,
-        _current_count: u64,
-    ) -> Result<()> {
-        require!(
-            !ctx.accounts.txn_status.executed,
-            MessengerError::TransactionAlreadyExecuted
-        );
-        let transaction_status = &mut ctx.accounts.txn_status;
-        transaction_status.executed = true;
-
-        // params if passed incorrecrtly the signature will not work and the txn will panic.
-        // Has this been executed already?
-        require!(
-            !ctx.accounts.transaction.did_execute,
-            MessengerError::AlreadyExecuted
-        );
-
-        // Burn the transaction to ensure one time use.
-        ctx.accounts.transaction.did_execute = true;
-        require!(
-            perform_cpi(
-                from_chain_id,
-                eth_add,
-                *ctx.accounts.transaction.clone(),
-                ctx.accounts.pda_signer.clone(),
-                ctx.bumps,
-                ctx.remaining_accounts
-            )
-            .is_ok(),
-            MessengerError::InvalidCPI
-        );
-
-        emit!(ExecutedTransaction {
-            from_chain_id: from_chain_id,
-            eth_add: eth_add,
-            transaction: ctx.accounts.transaction.to_account_info().key(),
-        });
-        Ok(())
-    }
-
     pub fn xstream_withdraw(
         ctx: Context<XstreamWithdraw>,
         sender: [u8; 32],
         from_chain_id: u16,
-        current_count: u64,
     ) -> Result<()> {
         //Hash a VAA Extract and derive a VAA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
@@ -470,21 +390,6 @@ pub mod solana_project {
                     == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
             MessengerError::VAAEmitterMismatch
         );
-
-        // Change Transaction Count to Current Count
-        let txn_count = &mut ctx.accounts.txn_count;
-        let sum = txn_count.count.checked_add(1);
-
-        match sum {
-            None => return Err(MessengerError::Overflow.into()),
-            Some(val) => txn_count.count = val,
-        }
-        require!(
-            txn_count.count == current_count,
-            MessengerError::InvalidCount
-        );
-
-        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
         let payload = decode_xstream_withdraw(vaa.payload);
 
@@ -564,7 +469,6 @@ pub mod solana_project {
         ctx: Context<XstreamStart>,
         sender: [u8; 32],
         from_chain_id: u16,
-        current_count: u64,
     ) -> Result<()> {
         msg!("xstream start");
         //Hash a VAA Extract and derive a VAA Key
@@ -595,29 +499,8 @@ pub mod solana_project {
             MessengerError::VAAEmitterMismatch
         );
 
-        // Change Transaction Count to Current Count
-        let txn_count = &mut ctx.accounts.txn_count;
-        let sum = txn_count.count.checked_add(1);
-
-        match sum {
-            None => return Err(MessengerError::Overflow.into()),
-            Some(val) => txn_count.count = val,
-        }
-        require!(
-            txn_count.count == current_count,
-            MessengerError::InvalidCount
-        );
-
-        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
-
-        msg!("payload decoding");
         let payload = decode_xstream(vaa.payload);
         //let payload = XstreamStartPayload::try_from_slice(&vaa.payload[1..])?;
-
-        msg!("payload amount {:?}:", payload.amount);
-        msg!("payload start_time {:?}:", payload.start_time);
-        msg!("payload start_time {:?}:", payload.end_time);
-        msg!("payload start_time {:?}:", payload.can_cancel);
 
         //check Mint passed
         let mint_pubkey_passed: Pubkey = ctx.accounts.mint.key();
@@ -687,7 +570,6 @@ pub mod solana_project {
         ctx: Context<XstreamUpdate>,
         sender: [u8; 32],
         from_chain_id: u16,
-        current_count: u64,
     ) -> Result<()> {
         //Hash a VAA Extract and derive a VAA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
@@ -716,21 +598,6 @@ pub mod solana_project {
                     == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
             MessengerError::VAAEmitterMismatch
         );
-
-        // Change Transaction Count to Current Count
-        let txn_count = &mut ctx.accounts.txn_count;
-        let sum = txn_count.count.checked_add(1);
-
-        match sum {
-            None => return Err(MessengerError::Overflow.into()),
-            Some(val) => txn_count.count = val,
-        }
-        require!(
-            txn_count.count == current_count,
-            MessengerError::InvalidCount
-        );
-
-        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
         let payload = decode_xstream_update(vaa.payload);
 
@@ -800,7 +667,6 @@ pub mod solana_project {
         ctx: Context<XstreamDeposit>,
         sender: [u8; 32],
         from_chain_id: u16,
-        current_count: u64,
     ) -> Result<()> {
         //Hash a VAA Extract and derive a VAA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
@@ -829,21 +695,6 @@ pub mod solana_project {
                     == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
             MessengerError::VAAEmitterMismatch
         );
-
-        // Change Transaction Count to Current Count
-        let txn_count = &mut ctx.accounts.txn_count;
-        let sum = txn_count.count.checked_add(1);
-
-        match sum {
-            None => return Err(MessengerError::Overflow.into()),
-            Some(val) => txn_count.count = val,
-        }
-        require!(
-            txn_count.count == current_count,
-            MessengerError::InvalidCount
-        );
-
-        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
         let payload = decode_xstream_deposit(vaa.payload);
 
@@ -896,7 +747,6 @@ pub mod solana_project {
         ctx: Context<XstreamSenderWithdraw>,
         sender: [u8; 32],
         from_chain_id: u16,
-        current_count: u64,
     ) -> Result<()> {
         //Hash a VAA Extract and derive a VAA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
@@ -925,21 +775,6 @@ pub mod solana_project {
                     == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
             MessengerError::VAAEmitterMismatch
         );
-
-        // Change Transaction Count to Current Count
-        let txn_count = &mut ctx.accounts.txn_count;
-        let sum = txn_count.count.checked_add(1);
-
-        match sum {
-            None => return Err(MessengerError::Overflow.into()),
-            Some(val) => txn_count.count = val,
-        }
-        require!(
-            txn_count.count == current_count,
-            MessengerError::InvalidCount
-        );
-
-        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
         let payload = decode_deposit_withdraw(vaa.payload);
 
@@ -993,7 +828,6 @@ pub mod solana_project {
         ctx: Context<XstreamPause>,
         sender: [u8; 32],
         from_chain_id: u16,
-        current_count: u64,
     ) -> Result<()> {
         //Hash a VAA Extract and derive a VAA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
@@ -1022,21 +856,6 @@ pub mod solana_project {
                     == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
             MessengerError::VAAEmitterMismatch
         );
-
-        // Change Transaction Count to Current Count
-        let txn_count = &mut ctx.accounts.txn_count;
-        let sum = txn_count.count.checked_add(1);
-
-        match sum {
-            None => return Err(MessengerError::Overflow.into()),
-            Some(val) => txn_count.count = val,
-        }
-        require!(
-            txn_count.count == current_count,
-            MessengerError::InvalidCount
-        );
-
-        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
         let payload = decode_xstream_pause(vaa.payload);
 
@@ -1095,7 +914,6 @@ pub mod solana_project {
         ctx: Context<XstreamCancel>,
         sender: [u8; 32],
         from_chain_id: u16,
-        current_count: u64,
     ) -> Result<()> {
         //Hash a VAA Extract and derive a VAA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
@@ -1124,21 +942,6 @@ pub mod solana_project {
                     == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
             MessengerError::VAAEmitterMismatch
         );
-
-        // Change Transaction Count to Current Count
-        let txn_count = &mut ctx.accounts.txn_count;
-        let sum = txn_count.count.checked_add(1);
-
-        match sum {
-            None => return Err(MessengerError::Overflow.into()),
-            Some(val) => txn_count.count = val,
-        }
-        require!(
-            txn_count.count == current_count,
-            MessengerError::InvalidCount
-        );
-
-        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
         let payload = decode_xstream_cancel(vaa.payload);
 
@@ -1216,7 +1019,6 @@ pub mod solana_project {
         ctx: Context<XstreamInstant>,
         sender: [u8; 32],
         from_chain_id: u16,
-        current_count: u64,
     ) -> Result<()> {
         //Hash a VAA Extracts and derive a VAA Key
         let vaa = PostedMessageData::try_from_slice(&ctx.accounts.core_bridge_vaa.data.borrow())?.0;
@@ -1245,21 +1047,6 @@ pub mod solana_project {
                     == decode(ctx.accounts.emitter_acc.emitter_addr.as_str()).unwrap()[..],
             MessengerError::VAAEmitterMismatch
         );
-
-        // Change Transaction Count to Current Count
-        let txn_count = &mut ctx.accounts.txn_count;
-        let sum = txn_count.count.checked_add(1);
-
-        match sum {
-            None => return Err(MessengerError::Overflow.into()),
-            Some(val) => txn_count.count = val,
-        }
-        require!(
-            txn_count.count == current_count,
-            MessengerError::InvalidCount
-        );
-
-        ctx.accounts.processed_vaa.transaction_count = txn_count.count;
 
         let payload = decode_xstream_instant(vaa.payload);
 
@@ -1323,15 +1110,14 @@ pub mod solana_project {
 }
 
 fn transfer_wrapped(
-    ctx: Context<DirectTransferWrapped>,
+    ctx: Context<XstreamDirectTransferWrapped>,
     sender: [u8; 32],
+    amount: u64,
     sender_chain: u16,
     target_chain: u16,
     fee: u64,
     receiver: [u8; 32],
 ) -> Result<()> {
-    let amount = ctx.accounts.data_storage.amount;
-
     //Check EOA
     require!(
         ctx.accounts.config.owner == ctx.accounts.zebec_eoa.key(),
@@ -1428,14 +1214,14 @@ fn transfer_wrapped(
 
 //transfer
 fn transfer_native(
-    ctx: Context<DirectTransferNative>,
+    ctx: Context<XstreamDirectTransferNative>,
     sender: [u8; 32],
+    amount: u64,
     sender_chain: u16,
     target_chain: u16,
     fee: u64,
     receiver: [u8; 32],
 ) -> Result<()> {
-    let amount = ctx.accounts.data_storage.amount;
     //Check EOA
     require!(
         ctx.accounts.config.owner == ctx.accounts.zebec_eoa.key(),
@@ -1565,310 +1351,6 @@ pub fn serialize_vaa(vaa: &MessageData) -> Vec<u8> {
     v.write_u8(vaa.consistency_level).unwrap();
     v.write_all(&vaa.payload).unwrap();
     v.into_inner()
-}
-
-fn process_deposit(
-    encoded_str: Vec<u8>,
-    from_chain_id: u16,
-    transaction_data: &mut Account<TransactionData>,
-    sender: [u8; 32],
-) -> Result<()> {
-    let amount = get_u64(encoded_str[1..9].to_vec());
-    let to_chain_id = get_u256(encoded_str[9..41].to_vec());
-    let senderbytes = get_u32_array(encoded_str[41..73].to_vec());
-    let token_mint_bytes = &encoded_str[73..105].to_vec();
-
-    transaction_data.amount = amount;
-    transaction_data.sender = senderbytes;
-    transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(token_mint_bytes);
-
-    require!(senderbytes == sender, MessengerError::InvalidSenderWallet);
-    require!(
-        to_chain_id == U256::from_str("1").unwrap(),
-        MessengerError::InvalidToChainId
-    );
-    Ok(())
-}
-
-fn process_stream(
-    encoded_str: Vec<u8>,
-    from_chain_id: u16,
-    transaction_data: &mut Account<TransactionData>,
-    sender: [u8; 32],
-) -> Result<()> {
-    let start_time = get_u64(encoded_str[1..9].to_vec());
-    let end_time = get_u64(encoded_str[9..17].to_vec());
-    let amount = get_u64(encoded_str[17..25].to_vec());
-    let to_chain_id = get_u256(encoded_str[25..57].to_vec());
-    let senderwallet_bytes = get_u32_array(encoded_str[57..89].to_vec());
-    let receiver_wallet_bytes = get_u32_array(encoded_str[89..121].to_vec());
-    let can_update = get_u64(encoded_str[121..129].to_vec());
-    let can_cancel = get_u64(encoded_str[129..137].to_vec());
-    let token_mint_bytes = get_u32_array(encoded_str[137..169].to_vec());
-
-    transaction_data.start_time = start_time;
-    transaction_data.end_time = end_time;
-
-    transaction_data.can_update = can_update == 1;
-    transaction_data.can_cancel = can_cancel == 1;
-
-    transaction_data.amount = amount;
-    transaction_data.sender = senderwallet_bytes;
-    transaction_data.receiver = receiver_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(&token_mint_bytes);
-
-    require!(
-        senderwallet_bytes == sender,
-        MessengerError::InvalidSenderWallet
-    );
-    require!(
-        to_chain_id == U256::from_str("1").unwrap(),
-        MessengerError::InvalidToChainId
-    );
-    Ok(())
-}
-
-fn process_update_stream(
-    encoded_str: Vec<u8>,
-    from_chain_id: u16,
-    transaction_data: &mut Account<TransactionData>,
-    sender: [u8; 32],
-) -> Result<()> {
-    let start_time = get_u64(encoded_str[1..9].to_vec());
-    let end_time = get_u64(encoded_str[9..17].to_vec());
-    let amount = get_u64(encoded_str[17..25].to_vec());
-    let to_chain_id = get_u256(encoded_str[25..57].to_vec());
-    let senderwallet_bytes = get_u32_array(encoded_str[57..89].to_vec());
-    let receiver_wallet_bytes = get_u32_array(encoded_str[89..121].to_vec());
-    let token_mint = &encoded_str[121..153].to_vec();
-    let data_account = &encoded_str[153..185].to_vec();
-
-    transaction_data.start_time = start_time;
-    transaction_data.end_time = end_time;
-    transaction_data.amount = amount;
-    transaction_data.sender = senderwallet_bytes;
-    transaction_data.receiver = receiver_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(token_mint);
-    transaction_data.data_account = Pubkey::new(data_account);
-
-    require!(
-        senderwallet_bytes == sender,
-        MessengerError::InvalidSenderWallet
-    );
-    require!(
-        to_chain_id == U256::from_str("1").unwrap(),
-        MessengerError::InvalidToChainId
-    );
-    Ok(())
-}
-
-fn process_pause(
-    encoded_str: Vec<u8>,
-    from_chain_id: u16,
-    transaction_data: &mut Account<TransactionData>,
-    sender: [u8; 32],
-) -> Result<()> {
-    let to_chain_id = get_u256(encoded_str[1..33].to_vec());
-    let depositor_wallet_bytes = get_u32_array(encoded_str[33..65].to_vec());
-    let token_mint = &encoded_str[65..97].to_vec();
-    let receiver_wallet_bytes = get_u32_array(encoded_str[97..129].to_vec());
-    let data_account = &encoded_str[129..161].to_vec();
-
-    transaction_data.sender = depositor_wallet_bytes;
-    transaction_data.receiver = receiver_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(token_mint);
-    transaction_data.data_account = Pubkey::new(data_account);
-
-    require!(
-        depositor_wallet_bytes == sender,
-        MessengerError::InvalidSenderWallet
-    );
-    require!(
-        to_chain_id == U256::from_str("1").unwrap(),
-        MessengerError::InvalidToChainId
-    );
-    Ok(())
-}
-
-//receiver will withdraw streamed tokens (receiver == withdrawer)
-fn process_withdraw_stream(
-    encoded_str: Vec<u8>,
-    from_chain_id: u16,
-    transaction_data: &mut Account<TransactionData>,
-    receiver: [u8; 32],
-) -> Result<()> {
-    let to_chain_id = get_u256(encoded_str[1..33].to_vec());
-    let withdrawer_wallet_bytes = get_u32_array(encoded_str[33..65].to_vec());
-    let token_mint = &encoded_str[65..97].to_vec();
-    let depositor_wallet_bytes = get_u32_array(encoded_str[97..129].to_vec());
-    let data_account = &encoded_str[129..161].to_vec();
-
-    transaction_data.sender = depositor_wallet_bytes;
-    transaction_data.receiver = withdrawer_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(token_mint);
-    transaction_data.data_account = Pubkey::new(data_account);
-
-    require!(
-        withdrawer_wallet_bytes == receiver,
-        MessengerError::InvalidSenderWallet
-    );
-    require!(
-        to_chain_id == U256::from_str("1").unwrap(),
-        MessengerError::InvalidToChainId
-    );
-
-    Ok(())
-}
-
-fn process_cancel_stream(
-    encoded_str: Vec<u8>,
-    from_chain_id: u16,
-    transaction_data: &mut Account<TransactionData>,
-    sender: [u8; 32],
-) -> Result<()> {
-    let to_chain_id = get_u256(encoded_str[1..33].to_vec());
-    let depositor_wallet_bytes = get_u32_array(encoded_str[33..65].to_vec());
-    let token_mint = &encoded_str[65..97].to_vec();
-    let receiver_wallet_bytes = get_u32_array(encoded_str[97..129].to_vec());
-    let data_account = &encoded_str[129..161].to_vec();
-
-    transaction_data.sender = depositor_wallet_bytes;
-    transaction_data.receiver = receiver_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(token_mint);
-    transaction_data.data_account = Pubkey::new(data_account);
-
-    require!(
-        depositor_wallet_bytes == sender,
-        MessengerError::InvalidSenderWallet
-    );
-    require!(
-        to_chain_id == U256::from_str("1").unwrap(),
-        MessengerError::InvalidToChainId
-    );
-
-    Ok(())
-}
-
-//sender will withdraw deposited token
-fn process_withdraw(
-    encoded_str: Vec<u8>,
-    from_chain_id: u16,
-    transaction_data: &mut Account<TransactionData>,
-    sender: [u8; 32],
-) -> Result<()> {
-    let amount = get_u64(encoded_str[1..9].to_vec());
-    let to_chain_id = get_u256(encoded_str[9..41].to_vec());
-    let withdrawer_wallet_bytes = get_u32_array(encoded_str[41..73].to_vec());
-    let token_mint = &encoded_str[73..105].to_vec();
-
-    transaction_data.sender = withdrawer_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(token_mint);
-    transaction_data.amount = amount;
-
-    require!(
-        withdrawer_wallet_bytes == sender,
-        MessengerError::InvalidSenderWallet
-    );
-    require!(
-        to_chain_id == U256::from_str("1").unwrap(),
-        MessengerError::InvalidToChainId
-    );
-    Ok(())
-}
-
-fn process_instant_transfer(
-    encoded_str: Vec<u8>,
-    from_chain_id: u16,
-    transaction_data: &mut Account<TransactionData>,
-    sender: [u8; 32],
-) -> Result<()> {
-    let amount = get_u64(encoded_str[1..9].to_vec());
-    let to_chain_id = get_u256(encoded_str[9..41].to_vec());
-    let senderwallet_bytes = get_u32_array(encoded_str[41..73].to_vec());
-    let token_mint = &encoded_str[73..105].to_vec();
-    let withdrawer_wallet_bytes = get_u32_array(encoded_str[105..137].to_vec());
-
-    transaction_data.sender = senderwallet_bytes;
-    transaction_data.receiver = withdrawer_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(token_mint);
-    transaction_data.amount = amount;
-
-    require!(
-        senderwallet_bytes == sender,
-        MessengerError::InvalidSenderWallet
-    );
-    require!(
-        to_chain_id == U256::from_str("1").unwrap(),
-        MessengerError::InvalidToChainId
-    );
-    Ok(())
-}
-
-fn process_direct_transfer(
-    encoded_str: Vec<u8>,
-    from_chain_id: u16,
-    transaction_data: &mut Account<TransactionData>,
-    sender: [u8; 32],
-) -> Result<()> {
-    let amount = get_u64(encoded_str[1..9].to_vec());
-    let to_chain_id = get_u256(encoded_str[9..41].to_vec());
-    let senderwallet_bytes = get_u32_array(encoded_str[41..73].to_vec());
-    let token_mint = &encoded_str[73..105].to_vec();
-    let withdrawer_wallet_bytes = get_u32_array(encoded_str[105..137].to_vec());
-
-    transaction_data.sender = senderwallet_bytes;
-    transaction_data.receiver = withdrawer_wallet_bytes;
-    transaction_data.from_chain_id = from_chain_id;
-    transaction_data.token_mint = Pubkey::new(token_mint);
-    transaction_data.amount = amount;
-
-    require!(
-        senderwallet_bytes == sender,
-        MessengerError::InvalidSenderWallet
-    );
-    require!(
-        to_chain_id == U256::from_str("1").unwrap(),
-        MessengerError::InvalidToChainId
-    );
-    Ok(())
-}
-
-fn perform_cpi(
-    chain_id: u16,
-    sender: [u8; 32],
-    transaction: Account<Transaction>,
-    pda_signer: UncheckedAccount,
-    bumps: BTreeMap<String, u8>,
-    remaining_accounts: &[AccountInfo],
-) -> std::result::Result<(), anchor_lang::prelude::ProgramError> {
-    // Execute the transaction signed by the pdasender/pdareceiver.
-    let mut ix: Instruction = (transaction).deref().into();
-    ix.accounts = ix
-        .accounts
-        .iter()
-        .map(|acc| {
-            let mut acc = acc.clone();
-            if &acc.pubkey == pda_signer.key {
-                acc.is_signer = true;
-            }
-            acc
-        })
-        .collect();
-
-    let bump = bumps.get("pda_signer").unwrap().to_le_bytes();
-    let seeds: &[&[_]] = &[&sender, &chain_id.to_be_bytes(), bump.as_ref()];
-    let signer = &[&seeds[..]];
-    let accounts = remaining_accounts;
-
-    solana_program::program::invoke_signed(&ix, accounts, signer)
 }
 
 fn decode_xstream(encoded_str: Vec<u8>) -> XstreamStartPayload {
@@ -2008,6 +1490,23 @@ fn decode_xstream_instant(encoded_str: Vec<u8>) -> XstreamInstantTransferPayload
     let receiver = get_u32_array(encoded_str[105..137].to_vec());
 
     let payload = XstreamInstantTransferPayload {
+        amount,
+        to_chain_id,
+        sender,
+        token_mint,
+        receiver,
+    };
+    payload
+}
+
+fn decode_xstream_direct(encoded_str: Vec<u8>) -> XstreamDirectTransferPayload {
+    let amount = get_u64(encoded_str[1..9].to_vec());
+    let to_chain_id = get_u32_array(encoded_str[9..41].to_vec());
+    let sender = get_u32_array(encoded_str[41..73].to_vec());
+    let token_mint = get_u32_array(encoded_str[73..105].to_vec());
+    let receiver = get_u32_array(encoded_str[105..137].to_vec());
+
+    let payload = XstreamDirectTransferPayload {
         amount,
         to_chain_id,
         sender,

@@ -83,5 +83,6 @@ pub struct XstreamDirectTransferPayload {
     pub to_chain_id: [u8; 32],
     pub sender: [u8; 32],
     pub token_mint: [u8; 32],
-    pub withdrawer: [u8; 32],
+    pub receiver: [u8; 32],
 }
+
