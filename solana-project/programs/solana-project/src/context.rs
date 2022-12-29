@@ -443,7 +443,6 @@ pub struct XstreamDirectTransferWrapped<'info> {
 }
 
 // Single Transaction Contexts
-
 #[derive(Accounts)]
 #[instruction(
     sender:[u8;32],
@@ -499,8 +498,22 @@ pub struct XstreamStart<'info> {
     pub token_program:Program<'info,Token>,
     pub mint:Account<'info,Mint>,
     pub rent: Sysvar<'info, Rent>,
-    pub zebec_program: Program<'info, Zebec>
-
+    pub zebec_program: Program<'info, Zebec>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = mint,
+        associated_token::authority = dest_account,
+    )]
+    pub dest_token_account: Box<Account<'info, TokenAccount>>,
+    pub associated_token_program:Program<'info,AssociatedToken>,
+    #[account(
+        init_if_needed,
+        payer = payer,
+        associated_token::mint = mint,
+        associated_token::authority = fee_vault,
+    )]
+    fee_receiver_token_account: Box<Account<'info, TokenAccount>>,
 }
 
 #[derive(Accounts)]
@@ -709,7 +722,6 @@ pub struct XstreamWithdraw<'info> {
     /// CHECK: seeds has been checked
     pub zebec_vault: AccountInfo<'info>,
     // #[account(mut)]
-    // pub dest_account: Signer<'info>,
     #[account(mut)]
     /// CHECK: This will be validated on zebec core contract
     pub source_account: AccountInfo<'info>,
