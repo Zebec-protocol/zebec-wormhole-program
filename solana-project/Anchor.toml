@@ -5,13 +5,13 @@ seeds = false
 solana_project = "2w1QMXDTsWCmpdPHfjrL9SbkKeh3K37WMqJQUfnXHzRh"
 
 [programs.devnet]
-solana_project = "3BCSzisB1NZRcpB558MEvpJeJ4GtraQfdWqTshdtPVN8"
+solana_project = "3qAAmNxTHxeL6pKDC6nb2PmoCE6hgZM2QXtS88gBm3yL"
 
 [registry]
 url = "https://anchor.projectserum.com"
 
 [provider]
-cluster = "mainnet"
+cluster = "devnet"
 wallet = "./wallet.json" 
 
 [scripts]

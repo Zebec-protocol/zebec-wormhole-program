@@ -1204,6 +1204,7 @@ dependencies = [
  "hex",
  "primitive-types",
  "sha3 0.10.1",
+ "zebec",
 ]
 
 [[package]]
@@ -1218,6 +1219,12 @@ dependencies = [
  "rustversion",
  "syn",
 ]
+
+[[package]]
+name = "solana-security-txt"
+version = "1.0.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73e93d99928eeb25c103033a015667a93ac49c243852270c01a3ea1d61341ab8"
 
 [[package]]
 name = "spl-associated-token-account"
@@ -1453,6 +1460,16 @@ name = "yansi"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09041cd90cf85f7f8b2df60c646f853b7f535ce68f85244eb6731cf89fa498ec"
+
+[[package]]
+name = "zebec"
+version = "0.1.0"
+source = "git+https://github.com/Zebec-protocol/zebec-anchor.git#3134cbf4dd47604d8af5d24ed6fc30d7dcf2e24b"
+dependencies = [
+ "anchor-lang",
+ "anchor-spl",
+ "solana-security-txt",
+]
 
 [[package]]
 name = "zeroize"
