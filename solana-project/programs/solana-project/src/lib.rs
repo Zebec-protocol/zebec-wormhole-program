@@ -1366,8 +1366,8 @@ fn process_stream(
     let to_chain_id = get_u256(encoded_str[25..57].to_vec());
     let senderwallet_bytes = get_u32_array(encoded_str[57..89].to_vec());
     let receiver_wallet_bytes = get_u32_array(encoded_str[89..121].to_vec());
-    let can_update = get_u64(encoded_str[121..129].to_vec());
-    let can_cancel = get_u64(encoded_str[129..137].to_vec());
+    let can_cancel = get_u64(encoded_str[121..129].to_vec());
+    let can_update = get_u64(encoded_str[129..137].to_vec());
     let token_mint_bytes = &encoded_str[137..169].to_vec();
 
     transaction_data.start_time = start_time;
