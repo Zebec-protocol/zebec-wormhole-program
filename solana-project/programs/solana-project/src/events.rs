@@ -54,8 +54,6 @@ pub struct DirectTransferredNative {
     pub sender_chain: u16,
     pub target_chain: u16,
     pub receiver: [u8; 32],
-    pub current_count: u64
-
 }
 
 #[event]
@@ -64,7 +62,6 @@ pub struct DirectTransferredWrapped {
     pub sender_chain: u16,
     pub target_chain: u16,
     pub receiver: [u8; 32],
-    pub current_count: u64,
 }
 
 #[event]
